@@ -1,9 +1,16 @@
 # Next Best Move
 
-PooleShield v2.1.1 adds batch rollup.
+Run the v3.0.1 read-only file AV fixture.
 
-1. Run `batch-rollup` across the completed DAT batches.
-2. Upload only the rollup privacy bundle.
-3. Use the rollup totals as the checkpoint before starting v3.0 file/folder antivirus scanner work.
+```powershell
+cd "C:\Users\rookp\pooleshield_v3_0_package"
+python .\pooleshield_operator.py scan-folder --path .\examples\file_av_fixture --output-dir .\out\file_av_demo --clean-output --bundle-output --privacy-bundle
+```
 
-Recommended command is in `BATCH_ROLLUP_GUIDE.md`.
+Upload:
+
+```text
+out\file_av_demo\pooleshield_results_bundle.zip
+```
+
+Do not run v3.0.1 on the whole drive yet. After the fixture passes, scan a small real folder such as Downloads or Desktop with the read-only scanner.

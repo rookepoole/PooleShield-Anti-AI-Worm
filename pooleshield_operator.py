@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v2.1.1 operator CLI.
+PooleShield v3.0.1 operator CLI.
 
 Defensive purpose:
   Provide a real operator workflow for scanning folders/log exports, producing
@@ -30,8 +30,9 @@ from adapter_dat_extract import run_dat_extract
 from review_triage import build_triage
 from review_evidence import build_review_evidence
 from batch_rollup import build_rollup
+from file_antivirus import run_file_av_scan
 
-VERSION = "2.1.1"
+VERSION = "3.0.1"
 
 
 def policy_path_for(profile: str) -> str:
@@ -764,7 +765,7 @@ def run_dat_batch(
     return summary
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="PooleShield v2.0 real operator workflow")
+    parser = argparse.ArgumentParser(description="PooleShield v3.0.1 real operator workflow")
     sub = parser.add_subparsers(dest="command", required=True)
 
     scan = sub.add_parser("scan", help="Scan real folders/log exports and create a review queue/template")
@@ -899,6 +900,62 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     rollup_cmd.add_argument("--bundle-output", action="store_true", help="Create one ZIP bundle of the rollup reports")
     rollup_cmd.add_argument("--bundle-path", default=None, help="Optional ZIP path")
     rollup_cmd.add_argument("--privacy-bundle", action="store_true", default=True, help="Rollup bundles contain metadata only")
+
+
+    av_scan = sub.add_parser("av-scan", help="Read-only second-opinion file/folder antivirus scan")
+    av_scan.add_argument("--path", "-p", nargs="+", required=True, help="File/folder/archive path(s) to scan")
+    av_scan.add_argument("--output-dir", default="out/file_av_scan", help="Output folder")
+    av_scan.add_argument("--clean-output", action="store_true")
+    av_scan.add_argument("--no-recursive", action="store_true")
+    av_scan.add_argument("--include-hidden", action="store_true")
+    av_scan.add_argument("--max-bytes-per-file", type=int, default=5 * 1024 * 1024)
+    av_scan.add_argument("--max-archive-entries", type=int, default=500)
+    av_scan.add_argument("--max-archive-entry-bytes", type=int, default=2 * 1024 * 1024)
+    av_scan.add_argument("--no-archives", action="store_true")
+    av_scan.add_argument("--risk-profile", choices=["standard", "developer"], default="standard")
+    av_scan.add_argument("--bundle-output", action="store_true")
+    av_scan.add_argument("--bundle-path", default=None)
+    av_scan.add_argument("--privacy-bundle", action="store_true", default=True)
+
+    scan_file_cmd = sub.add_parser("scan-file", help="Read-only AV scan for one or more files")
+    scan_file_cmd.add_argument("--path", "-p", nargs="+", required=True)
+    scan_file_cmd.add_argument("--output-dir", default="out/file_av_scan")
+    scan_file_cmd.add_argument("--clean-output", action="store_true")
+    scan_file_cmd.add_argument("--max-bytes-per-file", type=int, default=5 * 1024 * 1024)
+    scan_file_cmd.add_argument("--max-archive-entries", type=int, default=500)
+    scan_file_cmd.add_argument("--max-archive-entry-bytes", type=int, default=2 * 1024 * 1024)
+    scan_file_cmd.add_argument("--no-archives", action="store_true")
+    scan_file_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default="standard")
+    scan_file_cmd.add_argument("--bundle-output", action="store_true")
+    scan_file_cmd.add_argument("--bundle-path", default=None)
+    scan_file_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
+
+    scan_folder_cmd = sub.add_parser("scan-folder", help="Read-only AV scan for a folder")
+    scan_folder_cmd.add_argument("--path", "-p", nargs="+", required=True)
+    scan_folder_cmd.add_argument("--output-dir", default="out/file_av_scan")
+    scan_folder_cmd.add_argument("--clean-output", action="store_true")
+    scan_folder_cmd.add_argument("--no-recursive", action="store_true")
+    scan_folder_cmd.add_argument("--include-hidden", action="store_true")
+    scan_folder_cmd.add_argument("--max-bytes-per-file", type=int, default=5 * 1024 * 1024)
+    scan_folder_cmd.add_argument("--max-archive-entries", type=int, default=500)
+    scan_folder_cmd.add_argument("--max-archive-entry-bytes", type=int, default=2 * 1024 * 1024)
+    scan_folder_cmd.add_argument("--no-archives", action="store_true")
+    scan_folder_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default="standard")
+    scan_folder_cmd.add_argument("--bundle-output", action="store_true")
+    scan_folder_cmd.add_argument("--bundle-path", default=None)
+    scan_folder_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
+
+    scan_archive_cmd = sub.add_parser("scan-archive", help="Read-only AV scan focused on ZIP archives")
+    scan_archive_cmd.add_argument("--path", "-p", nargs="+", required=True)
+    scan_archive_cmd.add_argument("--output-dir", default="out/archive_av_scan")
+    scan_archive_cmd.add_argument("--clean-output", action="store_true")
+    scan_archive_cmd.add_argument("--max-bytes-per-file", type=int, default=5 * 1024 * 1024)
+    scan_archive_cmd.add_argument("--max-archive-entries", type=int, default=500)
+    scan_archive_cmd.add_argument("--max-archive-entry-bytes", type=int, default=2 * 1024 * 1024)
+    scan_archive_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default="standard")
+    scan_archive_cmd.add_argument("--bundle-output", action="store_true")
+    scan_archive_cmd.add_argument("--bundle-path", default=None)
+    scan_archive_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
 
     bundle_cmd = sub.add_parser("bundle", help="Bundle an existing PooleShield output folder into one ZIP for upload/sharing")
     bundle_cmd.add_argument("--output-dir", required=True, help="Existing output folder to bundle")
@@ -1063,6 +1120,24 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             summary["bundle_summary"] = bundle_report
             summary["result_bundle"] = bundle_report.get("bundle_path")
             write_json(str(Path(args.output_dir) / "batch_rollup.json"), summary)
+
+    elif args.command in {"av-scan", "scan-file", "scan-folder", "scan-archive"}:
+        summary = run_file_av_scan(
+            paths=args.path,
+            output_dir=args.output_dir,
+            clean_output=args.clean_output,
+            recursive=not getattr(args, "no_recursive", True) if args.command != "scan-file" and args.command != "scan-archive" else False,
+            include_hidden=getattr(args, "include_hidden", False),
+            max_bytes_per_file=args.max_bytes_per_file,
+            max_archive_entries=args.max_archive_entries,
+            max_archive_entry_bytes=args.max_archive_entry_bytes,
+            scan_archives=not getattr(args, "no_archives", False),
+            risk_profile=getattr(args, "risk_profile", "standard"),
+            mode=args.command,
+            bundle_output=args.bundle_output,
+            bundle_path=args.bundle_path,
+            privacy_bundle=args.privacy_bundle,
+        )
     elif args.command == "bundle":
         bundle_report = bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle)
         summary = {

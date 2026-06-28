@@ -1,43 +1,51 @@
-# PooleShield v2.1.1
+# PooleShield v3.0.1
 
-Defensive local-geometry protection prototype for AI-agent / RAG / tool-call worm-risk detection.
+PooleShield is a privacy-first defensive scanner for AI-agent workflows, exported chat/log archives, prompt-injection propagation, and local file/folder antivirus triage.
 
-PooleShield is defensive only. It reads text-like logs/exports, scores local defect signals, and writes review reports. It does **not** execute scanned content, follow links, send emails, delete files, quarantine files, or modify the scanned corpus.
+PooleShield is defensive only. It reads local artifacts, scores static/local-geometry risk signals, and writes review reports. It does **not** execute scanned content, follow links, send emails, delete files, quarantine files, kill processes, install drivers, or modify the scanned corpus.
 
-## What v2.0 adds
+## v3.0.1 milestone
 
-v2.0 adds deterministic DAT batching so the operator does **not** need to manually shrink, split, or minimize large ChatGPT `.dat` export folders.
-
-New capabilities:
+v3.0.1 adds a read-only second-opinion file/folder antivirus scanner:
 
 ```text
-dat-extract --start-index N --max-files M
-dat-batch --start-index N --batch-size M
+scan-file
+scan-folder
+scan-archive
+av-scan
 ```
 
-`dat-batch` runs this local workflow in one command:
+The scanner reports hashes, metadata, extension/magic mismatch, script risk, entropy risk, archive-entry risk, and dry-run quarantine recommendations.
 
-```text
-DAT extract batch → chat-scan → review-triage → intermediate ledger → review-evidence → final_suggested_review_ledger.csv → privacy bundle
-```
-
-It does not auto-apply the final evidence ledger.
-
-## Recommended next command
+## Quick AV test
 
 ```powershell
-python .\pooleshield_operator.py dat-batch --path "C:\Users\rookp\Desktop\ChatGPT logs" --output-dir .\out\dat_batch_0050 --clean-output --start-index 50 --batch-size 150 --policy-profile balanced --bundle-output --privacy-bundle
+python .\pooleshield_operator.py scan-folder --path .\examples\file_av_fixture --output-dir .\out\file_av_demo --clean-output --bundle-output --privacy-bundle
 ```
 
 Upload only:
 
 ```text
-out\dat_batch_0050\pooleshield_results_bundle.zip
+out\file_av_demo\pooleshield_results_bundle.zip
+```
+
+## DAT/archive workflow
+
+The v2.x deterministic DAT workflow remains available:
+
+```powershell
+python .\pooleshield_operator.py dat-batch --path "C:\Users\rookp\Desktop\ChatGPT logs" --output-dir .\out\dat_batch_0050 --clean-output --start-index 50 --batch-size 150 --policy-profile balanced --bundle-output --privacy-bundle
+```
+
+Roll up completed batches:
+
+```powershell
+python .\pooleshield_operator.py batch-rollup --path "dat_batch_0050=.\out\dat_batch_0050\dat_chat_scan" --output-dir .\out\dat_archive_rollup --bundle-output --privacy-bundle
 ```
 
 ## Privacy rules
 
-Privacy bundles exclude:
+Privacy bundles exclude content-bearing files such as:
 
 ```text
 normalized_events.jsonl
@@ -46,58 +54,16 @@ review_evidence_local.md
 review_evidence_report.json
 ```
 
-Do not upload raw extracted DAT text unless intentionally sharing private chat content.
+The file AV scanner does not include raw file contents or matched snippets in its reports.
 
-## Main commands
+## IP boundary
 
-Run safe demo:
-
-```powershell
-python .\pooleshield_operator.py demo --clean-output --bundle-output --privacy-bundle
-```
-
-Inspect `.dat` exports:
-
-```powershell
-python .\pooleshield_operator.py dat-inspect --path "C:\Users\rookp\Desktop\ChatGPT logs" --output-dir .\out\dat_inspect --clean-output --bundle-output --privacy-bundle
-```
-
-Extract a deterministic DAT batch only:
-
-```powershell
-python .\pooleshield_operator.py dat-extract --path "C:\Users\rookp\Desktop\ChatGPT logs" --output-dir .\out\dat_extract_0050 --clean-output --start-index 50 --max-files 150 --bundle-output --privacy-bundle
-```
-
-Run full DAT batch workflow:
-
-```powershell
-python .\pooleshield_operator.py dat-batch --path "C:\Users\rookp\Desktop\ChatGPT logs" --output-dir .\out\dat_batch_0050 --clean-output --start-index 50 --batch-size 150 --policy-profile balanced --bundle-output --privacy-bundle
-```
-
-Apply a final suggested ledger after review:
-
-```powershell
-python .\pooleshield_operator.py apply-ledger --output-dir .\out\dat_batch_0050\dat_chat_scan --ledger .\out\dat_batch_0050\final_suggested_review_ledger.csv --bundle-output --privacy-bundle
-```
+The public/source-available code is not a publication of private Poole Math, Poole Manifold, Poole Defect Calculus, private benchmark data, or unpublished manuscripts. See `NOTICE.md`, `LICENSE`, and `docs/IP_BOUNDARIES.md` when present.
 
 ## Guide files
 
-- `DAT_BATCH_GUIDE.md` — deterministic full DAT batch workflow
-- `DAT_EXPORT_GUIDE.md` — inspect `.dat` exports
-- `DAT_EXTRACT_GUIDE.md` — locally extract text-like `.dat` blobs
-- `REVIEW_TRIAGE_GUIDE.md` — group large approval queues
-- `REVIEW_EVIDENCE_GUIDE.md` — local redacted evidence viewer
-- `RESULT_BUNDLE_GUIDE.md` — one-file upload bundles
+- `FILE_AV_GUIDE.md` — v3.0.1 file/folder AV scanner
+- `DAT_BATCH_GUIDE.md` — deterministic DAT batch workflow
+- `BATCH_ROLLUP_GUIDE.md` — metadata rollup dashboard
 - `PRIVACY_BUNDLE_GUIDE.md` — privacy-safe upload workflow
 - `PROJECT_STATE.md` / `NEXT_BEST_MOVE.md` — continuity files
-
-
-## v2.1.1 batch rollup
-
-After running deterministic DAT batches, summarize them with:
-
-```powershell
-python .\pooleshield_operator.py batch-rollup --path "dat_batch_0050=.\out\dat_batch_0050\dat_chat_scan" --output-dir .\out\dat_archive_rollup --bundle-output --privacy-bundle
-```
-
-See `BATCH_ROLLUP_GUIDE.md`.
