@@ -67,3 +67,15 @@ The public/source-available code is not a publication of private Poole Math, Poo
 - `BATCH_ROLLUP_GUIDE.md` — metadata rollup dashboard
 - `PRIVACY_BUNDLE_GUIDE.md` — privacy-safe upload workflow
 - `PROJECT_STATE.md` / `NEXT_BEST_MOVE.md` — continuity files
+
+
+## File AV review ledger
+
+PooleShield v3.1 adds a metadata-only review ledger for file/folder AV scans. Use it to mark known trusted helper scripts or local source/test artifacts as `ALLOW_LOG` without weakening the standard scanner profile.
+
+```powershell
+python .\pooleshield_operator.py file-av-review --output-dir .\out\file_av_scan --bundle-output --privacy-bundle
+python .\pooleshield_operator.py file-av-apply-ledger --output-dir .\out\file_av_scan --ledger .\out\file_av_scan\file_av_review_ledger_template.csv --bundle-output --privacy-bundle
+```
+
+The review ledger does not read scanned file contents and does not execute, delete, quarantine, or modify files.

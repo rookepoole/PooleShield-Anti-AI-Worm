@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v3.0.1 operator CLI.
+PooleShield v3.1.0 operator CLI.
 
 Defensive purpose:
   Provide a real operator workflow for scanning folders/log exports, producing
@@ -31,8 +31,9 @@ from review_triage import build_triage
 from review_evidence import build_review_evidence
 from batch_rollup import build_rollup
 from file_antivirus import run_file_av_scan
+from file_av_review import build_file_av_review_template, apply_file_av_review_ledger
 
-VERSION = "3.0.1"
+VERSION = "3.1.0"
 
 
 def policy_path_for(profile: str) -> str:
@@ -957,6 +958,22 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     scan_archive_cmd.add_argument("--bundle-path", default=None)
     scan_archive_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
 
+    file_av_review_cmd = sub.add_parser("file-av-review", help="Build a local review ledger template for file AV findings")
+    file_av_review_cmd.add_argument("--output-dir", default="out/file_av_scan", help="Existing file AV scan output folder")
+    file_av_review_cmd.add_argument("--report", default=None, help="Optional file_av_report.json path")
+    file_av_review_cmd.add_argument("--include-decision", action="append", default=None, help="Decision to include; repeatable. Default: REQUIRE_APPROVAL/BLOCK/QUARANTINE")
+    file_av_review_cmd.add_argument("--bundle-output", action="store_true")
+    file_av_review_cmd.add_argument("--bundle-path", default=None)
+    file_av_review_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
+
+    file_av_apply_cmd = sub.add_parser("file-av-apply-ledger", help="Apply a human-edited file AV review ledger")
+    file_av_apply_cmd.add_argument("--output-dir", default="out/file_av_scan", help="Existing file AV scan output folder")
+    file_av_apply_cmd.add_argument("--ledger", required=True, help="CSV ledger to apply")
+    file_av_apply_cmd.add_argument("--report", default=None, help="Optional file_av_report.json path")
+    file_av_apply_cmd.add_argument("--bundle-output", action="store_true")
+    file_av_apply_cmd.add_argument("--bundle-path", default=None)
+    file_av_apply_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
+
     bundle_cmd = sub.add_parser("bundle", help="Bundle an existing PooleShield output folder into one ZIP for upload/sharing")
     bundle_cmd.add_argument("--output-dir", required=True, help="Existing output folder to bundle")
     bundle_cmd.add_argument("--bundle-path", default=None, help="Optional ZIP path")
@@ -1134,6 +1151,24 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             scan_archives=not getattr(args, "no_archives", False),
             risk_profile=getattr(args, "risk_profile", "standard"),
             mode=args.command,
+            bundle_output=args.bundle_output,
+            bundle_path=args.bundle_path,
+            privacy_bundle=args.privacy_bundle,
+        )
+    elif args.command == "file-av-review":
+        summary = build_file_av_review_template(
+            output_dir=args.output_dir,
+            report_path=args.report,
+            include_decision=args.include_decision,
+            bundle_output=args.bundle_output,
+            bundle_path=args.bundle_path,
+            privacy_bundle=args.privacy_bundle,
+        )
+    elif args.command == "file-av-apply-ledger":
+        summary = apply_file_av_review_ledger(
+            output_dir=args.output_dir,
+            ledger=args.ledger,
+            report_path=args.report,
             bundle_output=args.bundle_output,
             bundle_path=args.bundle_path,
             privacy_bundle=args.privacy_bundle,

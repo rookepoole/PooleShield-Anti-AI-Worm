@@ -91,3 +91,20 @@ python .\pooleshield_operator.py scan-folder --path ".\some_trusted_source_folde
 ```
 
 The developer profile does not execute or modify files. It only caps source/test/reference-code false positives when a file clearly appears to be local developer/reference material.
+
+
+## v3.1 review ledger
+
+After a file/folder scan, generate a review ledger with:
+
+```powershell
+python .\pooleshield_operator.py file-av-review --output-dir .\out\file_av_scan --bundle-output --privacy-bundle
+```
+
+Edit `file_av_review_ledger_template.csv`, then apply it:
+
+```powershell
+python .\pooleshield_operator.py file-av-apply-ledger --output-dir .\out\file_av_scan --ledger .\out\file_av_scan\file_av_review_ledger_template.csv --bundle-output --privacy-bundle
+```
+
+This is intended for local trust decisions such as known helper scripts. Use the standard scanner profile for unknown user files.
