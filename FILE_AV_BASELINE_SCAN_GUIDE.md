@@ -32,3 +32,8 @@ python .\pooleshield_operator.py file-av-scan-baseline `
 ## Why this exists
 
 Earlier workflows produced both original dry-run recommendations and baseline-effective decisions. v3.3 keeps both for audit, but also writes an effective post-baseline plan so the operator has one clear final view.
+
+
+## v3.5 final summary
+
+`file-av-scan-baseline` now writes `FINAL_SCAN_SUMMARY.md/json`, which is the recommended first report for operators. It prioritizes effective post-baseline decisions over original raw scan decisions.

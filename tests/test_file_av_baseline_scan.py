@@ -58,12 +58,16 @@ def test_file_av_scan_baseline_one_command(tmp_path: Path):
     assert summary["pending_review_rows"] == 0
     assert summary["by_effective_decision"].get("ALLOW_LOG", 0) >= 1
     assert (out / "effective_dry_run_quarantine_plan.json").exists()
+    assert (out / "FINAL_SCAN_SUMMARY.json").exists()
+    assert (out / "FINAL_SCAN_SUMMARY.md").exists()
     plan = json.loads((out / "effective_dry_run_quarantine_plan.json").read_text(encoding="utf-8"))
     assert plan["items"] == []
     with zipfile.ZipFile(out / "pooleshield_results_bundle.zip") as z:
         names = set(z.namelist())
     assert "effective_file_av_baseline_decisions.json" in names
     assert "effective_dry_run_quarantine_plan.json" in names
+    assert "FINAL_SCAN_SUMMARY.json" in names
+    assert "FINAL_SCAN_SUMMARY.md" in names
     assert "trusted_file_baseline.json" not in names
 
 
@@ -85,3 +89,4 @@ def test_operator_file_av_scan_baseline_cli(tmp_path: Path):
     data = json.loads((out / "RUN_SUMMARY_FILE_AV_BASELINE_SCAN.json").read_text(encoding="utf-8"))
     assert data["pending_review_rows"] == 0
     assert data["baseline_matches"] >= 1
+    assert data["final_verdict"] == "CLEAN_AFTER_POLICY"

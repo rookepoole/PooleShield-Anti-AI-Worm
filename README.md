@@ -104,10 +104,15 @@ python .\pooleshield_operator.py file-av-scan-baseline --path "C:\path\to\folder
 This command is still dry-run only. It does not execute, delete, quarantine, or modify scanned files.
 
 
-## v3.4 local rule packs
+## v3.5 local rule packs
 
 PooleShield supports optional JSON rule packs for read-only file AV scans. Rule packs can add labels/risk deltas for local policy, suspicious filenames, archive entries, and static text patterns. Rule packs do not execute, delete, quarantine, modify, or silently allow files.
 
-## v3.4.2 archive-aware baseline
+## v3.5 archive-aware baseline
 
-v3.4.2 allows a reviewed archive hash in the local trusted baseline to cover its archive entries with `ALLOW_LOG` on future scans. Unknown archives and script entries remain conservative. This is intended for trusted release packages and developer workflows, not for silently allowing arbitrary downloaded ZIP files.
+v3.5 allows a reviewed archive hash in the local trusted baseline to cover its archive entries with `ALLOW_LOG` on future scans. Unknown archives and script entries remain conservative. This is intended for trusted release packages and developer workflows, not for silently allowing arbitrary downloaded ZIP files.
+
+
+## v3.5 final scan summary
+
+Baseline-aware file AV scans now emit `FINAL_SCAN_SUMMARY.md/json` so operators can read one final effective verdict after rules and baselines are applied. Original scan decisions remain available for audit, but the final summary is the recommended first report.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v3.4.2 operator CLI.
+PooleShield v3.5.1 operator CLI.
 
 Defensive purpose:
   Provide a real operator workflow for scanning folders/log exports, producing
@@ -35,8 +35,9 @@ from file_av_review import build_file_av_review_template, apply_file_av_review_l
 from file_av_baseline import build_file_av_baseline, apply_file_av_baseline, PooleShieldUserError
 from file_av_baseline_scan import run_file_av_scan_with_baseline
 from file_av_rules import validate_rule_pack_file
+from file_av_final_summary import build_final_scan_summary
 
-VERSION = "3.4.2"
+VERSION = "3.5.1"
 
 
 def policy_path_for(profile: str) -> str:
@@ -1000,6 +1001,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     file_av_scan_baseline_cmd.add_argument("--bundle-path", default=None)
     file_av_scan_baseline_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
 
+    file_av_summary_cmd = sub.add_parser("file-av-final-summary", help="Create one operator-facing final file AV summary from an existing scan output")
+    file_av_summary_cmd.add_argument("--output-dir", default="out/file_av_scan", help="Existing file AV output folder")
+    file_av_summary_cmd.add_argument("--report", default=None, help="Optional effective decision report path")
+    file_av_summary_cmd.add_argument("--bundle-output", action="store_true")
+    file_av_summary_cmd.add_argument("--bundle-path", default=None)
+    file_av_summary_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
+
     file_av_baseline_cmd = sub.add_parser("file-av-build-baseline", help="Build a local trusted-hash baseline from reviewed file AV decisions")
     file_av_baseline_cmd.add_argument("--output-dir", default="out/file_av_scan", help="Existing file AV scan output folder")
     file_av_baseline_cmd.add_argument("--report", default=None, help="Optional effective_file_av_decisions.json or file_av_report.json path")
@@ -1247,6 +1255,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             bundle_path=args.bundle_path,
             privacy_bundle=args.privacy_bundle,
         )
+
+    elif args.command == "file-av-final-summary":
+        summary = build_final_scan_summary(
+            output_dir=args.output_dir,
+            report_path=args.report,
+            mode="file-av-final-summary",
+        )
+        if args.bundle_output:
+            bundle_output_dir(args.output_dir, args.bundle_path or str(Path(args.output_dir) / "pooleshield_results_bundle.zip"), privacy_mode=args.privacy_bundle)
+        print(json.dumps(summary, indent=2))
+        return 0
 
     elif args.command == "file-av-build-baseline":
         summary = build_file_av_baseline(

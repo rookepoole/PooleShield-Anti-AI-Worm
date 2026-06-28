@@ -1,28 +1,16 @@
 # Recovery Commands
 
-## Validate package
-
 ```powershell
-cd "C:\Users\rookp\pooleshield_v3_4_package"
+cd "C:\Users\rookp\pooleshield_v3_5_package"
 python -m pytest -q
-```
-
-## Validate default rule pack
-
-```powershell
-python .\pooleshield_operator.py rule-pack-validate --rule-pack .\examples\rule_packs\file_av_rules.default.json --output-dir .\out\rule_pack_validate --clean-output --bundle-output --privacy-bundle
-```
-
-## One-command baseline-aware scan with local rules
-
-```powershell
 python .\pooleshield_operator.py file-av-scan-baseline `
   --path "$env:USERPROFILE\Desktop\PooleShieldRealScanSmall" `
   --baseline "C:\Users\rookp\pooleshield_v3_2_package\local_trust\trusted_file_baseline.json" `
   --rule-pack .\examples\rule_packs\file_av_rules.default.json `
-  --output-dir .\out\file_av_real_small_rules `
+  --output-dir .\out\file_av_real_small_rules_summary `
   --clean-output `
   --risk-profile developer `
   --bundle-output `
   --privacy-bundle
+Get-Content .\out\file_av_real_small_rules_summary\FINAL_SCAN_SUMMARY.md
 ```

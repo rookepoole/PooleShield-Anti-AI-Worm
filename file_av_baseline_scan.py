@@ -21,8 +21,9 @@ from typing import Any, Dict, List, Optional, Sequence
 from file_antivirus import run_file_av_scan
 from file_av_baseline import apply_file_av_baseline, norm_list
 from result_bundler import bundle_output_dir
+from file_av_final_summary import build_final_scan_summary
 
-VERSION = "3.4.2"
+VERSION = "3.5.1"
 REVIEW_DECISIONS = {"REQUIRE_APPROVAL", "BLOCK", "QUARANTINE"}
 
 
@@ -216,6 +217,14 @@ def run_file_av_scan_with_baseline(
         "bundle_summary": None,
         "result_bundle": str(out / "pooleshield_results_bundle.zip") if bundle_output else "",
     }
+    write_json(summary_json, summary)
+    write_summary_md(summary_md, summary)
+    final_summary = build_final_scan_summary(output_dir=output_dir, report_path=str(effective_path), mode="file-av-scan-baseline")
+    summary["final_verdict"] = final_summary.get("verdict")
+    summary["final_headline"] = final_summary.get("headline")
+    summary["final_actionable_items"] = final_summary.get("actionable_items")
+    summary["final_summary_json"] = str(out / "FINAL_SCAN_SUMMARY.json")
+    summary["final_summary_md"] = str(out / "FINAL_SCAN_SUMMARY.md")
     write_json(summary_json, summary)
     write_summary_md(summary_md, summary)
 
