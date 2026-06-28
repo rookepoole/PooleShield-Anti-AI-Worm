@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v3.2.0 read-only file/folder antivirus scanner.
+PooleShield v3.4.2 read-only file/folder antivirus scanner.
 
 Defensive purpose:
   Provide a second-opinion static scanner for files, folders, scripts, and ZIP
@@ -28,8 +28,9 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from result_bundler import bundle_output_dir
+from file_av_rules import apply_rule_pack, load_rule_pack, rule_pack_summary
 
-VERSION = "3.3.0"
+VERSION = "3.4.2"
 
 SCRIPT_EXTENSIONS = {
     ".ps1", ".psm1", ".bat", ".cmd", ".vbs", ".vbe", ".js", ".jse", ".wsf", ".wsh",
@@ -96,6 +97,7 @@ class ScanItem:
     magic_type: str = "unknown"
     skipped_reason: str = ""
     archive_parent: str = ""
+    archive_parent_sha256: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -112,6 +114,7 @@ class ScanItem:
             "magic_type": self.magic_type,
             "skipped_reason": self.skipped_reason,
             "archive_parent": self.archive_parent,
+            "archive_parent_sha256": self.archive_parent_sha256,
         }
 
 
@@ -241,8 +244,10 @@ def scan_bytes(
     suffix: str,
     kind: str,
     archive_parent: str = "",
+    archive_parent_sha256: str = "",
     truncated: bool = False,
     risk_profile: str = "standard",
+    rule_pack: Optional[Dict[str, Any]] = None,
 ) -> ScanItem:
     labels: List[str] = []
     reasons: List[str] = []
@@ -291,6 +296,7 @@ def scan_bytes(
 
     should_text_scan = suffix in TEXT_EXTENSIONS or magic.startswith("text_like")
     developer_reference_context = False
+    text: Optional[str] = None
     if should_text_scan:
         text = decode_text(data, Path(display_path))
         for label, pattern, weight in RISK_PATTERNS:
@@ -305,6 +311,17 @@ def scan_bytes(
             # Source/test files often contain detection strings as inert text.
             # Keep an audit log, but avoid BLOCK unless another layer reviews it.
             risk = min(risk, 0.34)
+
+    risk = apply_rule_pack(
+        rule_pack,
+        display_path=display_path,
+        suffix=suffix,
+        magic_type=magic,
+        labels=labels,
+        reasons=reasons,
+        risk=risk,
+        text=text,
+    )
 
     # Cap risk but preserve high-severity decisions below.
     risk = min(risk, 0.99)
@@ -324,6 +341,7 @@ def scan_bytes(
         entropy=entropy,
         magic_type=magic,
         archive_parent=archive_parent,
+        archive_parent_sha256=archive_parent_sha256,
     )
 
 
@@ -340,7 +358,7 @@ def decision_for(risk: float, labels: Sequence[str]) -> str:
     return "ALLOW"
 
 
-def scan_regular_file(path: Path, max_bytes_per_file: int, risk_profile: str = "standard") -> ScanItem:
+def scan_regular_file(path: Path, max_bytes_per_file: int, risk_profile: str = "standard", rule_pack: Optional[Dict[str, Any]] = None) -> ScanItem:
     stat = path.stat()
     truncated = stat.st_size > max_bytes_per_file
     with path.open("rb") as f:
@@ -355,13 +373,14 @@ def scan_regular_file(path: Path, max_bytes_per_file: int, risk_profile: str = "
         kind="file",
         truncated=truncated,
         risk_profile=risk_profile,
+        rule_pack=rule_pack,
     )
     item.size_bytes = stat.st_size
     item.sha256 = digest
     return item
 
 
-def scan_zip_archive(path: Path, max_archive_entries: int, max_entry_bytes: int, risk_profile: str = "standard") -> Tuple[List[ScanItem], Dict[str, Any]]:
+def scan_zip_archive(path: Path, max_archive_entries: int, max_entry_bytes: int, risk_profile: str = "standard", rule_pack: Optional[Dict[str, Any]] = None) -> Tuple[List[ScanItem], Dict[str, Any]]:
     items: List[ScanItem] = []
     inventory: Dict[str, Any] = {
         "archive_path": str(path),
@@ -371,6 +390,7 @@ def scan_zip_archive(path: Path, max_archive_entries: int, max_entry_bytes: int,
         "entries_skipped": 0,
         "skipped_reasons": {},
     }
+    archive_hash = str(inventory.get("archive_sha256") or "")
     try:
         with zipfile.ZipFile(path) as zf:
             infos = [info for info in zf.infolist() if not info.is_dir()]
@@ -392,6 +412,7 @@ def scan_zip_archive(path: Path, max_archive_entries: int, max_entry_bytes: int,
                         reasons=["archive entry larger than max entry scan bytes"],
                         skipped_reason="entry_larger_than_max_bytes",
                         archive_parent=str(path),
+                        archive_parent_sha256=archive_hash,
                     ))
                     continue
                 try:
@@ -411,6 +432,7 @@ def scan_zip_archive(path: Path, max_archive_entries: int, max_entry_bytes: int,
                         reasons=[f"could not read archive entry: {type(exc).__name__}"],
                         skipped_reason="read_error",
                         archive_parent=str(path),
+                        archive_parent_sha256=archive_hash,
                     ))
                     continue
                 item = scan_bytes(
@@ -420,8 +442,10 @@ def scan_zip_archive(path: Path, max_archive_entries: int, max_entry_bytes: int,
                     suffix=Path(info.filename).suffix,
                     kind="archive_entry",
                     archive_parent=str(path),
+                    archive_parent_sha256=archive_hash,
                     truncated=False,
                     risk_profile=risk_profile,
+                    rule_pack=rule_pack,
                 )
                 item.size_bytes = info.file_size
                 items.append(item)
@@ -555,6 +579,7 @@ def run_file_av_scan(
     max_archive_entry_bytes: int = 2 * 1024 * 1024,
     scan_archives: bool = True,
     risk_profile: str = "standard",
+    rule_pack: Optional[str] = None,
     mode: str = "av-scan",
     bundle_output: bool = False,
     bundle_path: Optional[str] = None,
@@ -565,6 +590,7 @@ def run_file_av_scan(
         import shutil
         shutil.rmtree(out)
     out.mkdir(parents=True, exist_ok=True)
+    loaded_rule_pack = load_rule_pack(rule_pack)
 
     report_json = out / "file_av_report.json"
     report_csv = out / "file_av_report.csv"
@@ -586,10 +612,10 @@ def run_file_av_scan(
 
     for file_path in seen_files:
         try:
-            item = scan_regular_file(file_path, max_bytes_per_file=max_bytes_per_file, risk_profile=risk_profile)
+            item = scan_regular_file(file_path, max_bytes_per_file=max_bytes_per_file, risk_profile=risk_profile, rule_pack=loaded_rule_pack)
             items.append(item)
             if scan_archives and (file_path.suffix.lower() == ".zip" or item.magic_type == "zip_archive"):
-                entry_items, inv = scan_zip_archive(file_path, max_archive_entries=max_archive_entries, max_entry_bytes=max_archive_entry_bytes, risk_profile=risk_profile)
+                entry_items, inv = scan_zip_archive(file_path, max_archive_entries=max_archive_entries, max_entry_bytes=max_archive_entry_bytes, risk_profile=risk_profile, rule_pack=loaded_rule_pack)
                 archives.append(inv)
                 items.extend(entry_items)
                 suspicious_children = [e for e in entry_items if e.decision in {"REQUIRE_APPROVAL", "BLOCK", "QUARANTINE"}]
@@ -618,6 +644,7 @@ def run_file_av_scan(
             "max_archive_entry_bytes": max_archive_entry_bytes,
             "scan_archives": scan_archives,
             "risk_profile": risk_profile,
+            "rule_pack": rule_pack_summary(loaded_rule_pack),
             "read_only": True,
             "dry_run_only": True,
         },
@@ -628,7 +655,7 @@ def run_file_av_scan(
     report_json.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     csv_fields = [
         "decision", "risk_score", "display_path", "kind", "size_bytes", "sha256", "magic_type",
-        "entropy", "labels", "reasons", "skipped_reason", "archive_parent", "source_path",
+        "entropy", "labels", "reasons", "skipped_reason", "archive_parent", "archive_parent_sha256", "source_path",
     ]
     write_csv(report_csv, item_dicts, csv_fields)
     write_markdown_report(report_md, report)
@@ -648,6 +675,7 @@ def run_file_av_scan(
         "report_csv": str(report_csv),
         "report_md": str(report_md),
         "dry_run_quarantine_plan": str(q_json),
+        "rule_pack": rule_pack_summary(loaded_rule_pack),
         "summary": summary,
         "bundle_summary": None,
         "result_bundle": str(out / "pooleshield_results_bundle.zip") if bundle_output else "",
@@ -680,7 +708,7 @@ def run_file_av_scan(
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="PooleShield v3.2.0 read-only file AV scanner")
+    parser = argparse.ArgumentParser(description="PooleShield v3.4.2 read-only file AV scanner")
     parser.add_argument("--path", "-p", nargs="+", required=True)
     parser.add_argument("--output-dir", default="out/file_av_scan")
     parser.add_argument("--clean-output", action="store_true")
@@ -692,6 +720,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--no-archives", action="store_true")
     parser.add_argument("--risk-profile", choices=["standard", "developer"], default="standard",
                         help="Use 'developer' only for scanning trusted source/test packages to reduce self-scan false positives")
+    parser.add_argument("--rule-pack", default=None, help="Optional local JSON rule pack for extra static file-AV labels/risk deltas")
     parser.add_argument("--bundle-output", action="store_true")
     parser.add_argument("--bundle-path", default=None)
     parser.add_argument("--privacy-bundle", action="store_true")
@@ -707,6 +736,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         max_archive_entry_bytes=args.max_archive_entry_bytes,
         scan_archives=not args.no_archives,
         risk_profile=args.risk_profile,
+        rule_pack=args.rule_pack,
         bundle_output=args.bundle_output,
         bundle_path=args.bundle_path,
         privacy_bundle=args.privacy_bundle,

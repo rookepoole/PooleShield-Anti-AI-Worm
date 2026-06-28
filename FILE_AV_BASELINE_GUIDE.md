@@ -81,3 +81,43 @@ The apply command never creates a baseline automatically because that could sile
 ## v3.3 one-command scan + baseline
 
 Use `file-av-scan-baseline` to run a fresh read-only scan and apply a trusted baseline in one workflow. See `FILE_AV_BASELINE_SCAN_GUIDE.md`.
+
+## v3.4.2 archive-aware baseline behavior
+
+PooleShield v3.4.2 extends trusted baselines to archive entries:
+
+```text
+Reviewed archive hash in baseline -> archive entries may become ALLOW_LOG
+Unknown archive with risky entries -> still REQUIRE_APPROVAL/BLOCK as before
+```
+
+This is useful for known PooleShield release packages or other reviewed developer archives. It does not weaken the default scanner because the parent archive hash must already exist in the local trusted baseline.
+
+Baseline matches remain auditable:
+
+```text
+baseline_trusted_hash      direct file/hash match
+baseline_trusted_archive   archive entry allowed by reviewed parent archive hash
+```
+
+The baseline database is local metadata and is excluded from privacy bundles.
+
+
+## Merge into an existing baseline
+
+Use `--merge-existing` when adding newly reviewed files or archive entries to a
+baseline you already trust. Without this flag, `file-av-build-baseline` writes a
+fresh baseline from the selected output folder.
+
+```powershell
+python .\pooleshield_operator.py file-av-build-baseline `
+  --output-dir .\out\file_av_real_small_rules `
+  --baseline-path "C:\Users\rookp\pooleshield_v3_2_package\local_trust\trusted_file_baseline.json" `
+  --merge-existing `
+  --bundle-output `
+  --privacy-bundle
+```
+
+This is the preferred workflow for reviewed archives: unknown archives remain
+conservative, while reviewed archive/container hashes and reviewed archive-entry
+hashes can be remembered locally.

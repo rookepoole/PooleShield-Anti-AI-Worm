@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from result_bundler import bundle_output_dir
 
-VERSION = "3.3.0"
+VERSION = "3.4.2"
 REVIEW_DECISIONS = {"REQUIRE_APPROVAL", "BLOCK", "QUARANTINE"}
 ALLOW_DECISIONS = {"ALLOW", "ALLOW_LOG"}
 
@@ -176,6 +176,38 @@ def write_baseline_md(path: Path, baseline: Dict[str, Any]) -> None:
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+
+def merge_baseline_entry_lists(existing_entries: Sequence[Dict[str, Any]], new_entries: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Merge trusted-baseline entries by SHA, preserving audit-friendly metadata."""
+    by_hash: Dict[str, Dict[str, Any]] = {}
+    for entry in list(existing_entries or []) + list(new_entries or []):
+        digest = str(entry.get("sha256") or "").strip().lower()
+        if not digest:
+            continue
+        clean = dict(entry)
+        clean["sha256"] = digest
+        clean["labels"] = sorted(set(norm_list(clean.get("labels"))))
+        clean["path_hints"] = list(dict.fromkeys(norm_list(clean.get("path_hints"))))[:50]
+        if digest not in by_hash:
+            by_hash[digest] = clean
+            continue
+        prev = by_hash[digest]
+        # Prefer the more auditable ALLOW_LOG when any source says ALLOW_LOG.
+        if clean.get("trusted_decision") == "ALLOW_LOG" or prev.get("trusted_decision") == "ALLOW_LOG":
+            prev["trusted_decision"] = "ALLOW_LOG"
+        prev["source_effective_decision"] = prev.get("source_effective_decision") or clean.get("source_effective_decision", "")
+        prev["kind"] = prev.get("kind") or clean.get("kind", "")
+        prev["size_bytes"] = prev.get("size_bytes") or clean.get("size_bytes", "")
+        prev["labels"] = sorted(set(norm_list(prev.get("labels")) + norm_list(clean.get("labels"))))
+        prev["path_hints"] = list(dict.fromkeys(norm_list(prev.get("path_hints")) + norm_list(clean.get("path_hints"))))[:50]
+        prev["review_notes"] = "; ".join([x for x in [prev.get("review_notes", ""), clean.get("review_notes", "")] if x])[:500]
+        prev["last_seen"] = clean.get("last_seen") or utc_now()
+        if not prev.get("first_seen"):
+            prev["first_seen"] = clean.get("first_seen") or utc_now()
+    return [by_hash[k] for k in sorted(by_hash)]
+
+
+
 def build_file_av_baseline(
     output_dir: str,
     report_path: Optional[str] = None,
@@ -185,6 +217,7 @@ def build_file_av_baseline(
     bundle_output: bool = False,
     bundle_path: Optional[str] = None,
     privacy_bundle: bool = True,
+    merge_existing: bool = False,
 ) -> Dict[str, Any]:
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -193,6 +226,14 @@ def build_file_av_baseline(
     baseline_file = Path(baseline_path) if baseline_path else out / "trusted_file_baseline.json"
     if not baseline_file.is_absolute():
         baseline_file = out / baseline_file
+
+    existing_entry_count = 0
+    if merge_existing and baseline_file.exists():
+        existing = read_json(baseline_file)
+        existing_entries = existing.get("entries", []) if isinstance(existing, dict) else []
+        existing_entry_count = len(existing_entries)
+        entries = merge_baseline_entry_lists(existing_entries, entries)
+
     baseline_md = baseline_file.with_suffix(".md")
     baseline_csv = baseline_file.with_suffix(".csv")
     summary_json = out / "RUN_SUMMARY_FILE_AV_BASELINE.json"
@@ -207,6 +248,8 @@ def build_file_av_baseline(
             "source_report": source_report,
             "include_decision": list(include_decision or ["ALLOW", "ALLOW_LOG"]),
             "include_unreviewed_allowed": include_unreviewed_allowed,
+            "merge_existing": merge_existing,
+            "existing_entry_count": existing_entry_count,
         },
         "entries": entries,
     }
@@ -226,6 +269,8 @@ def build_file_av_baseline(
         "baseline_path": str(baseline_file),
         "baseline_entries": len(entries),
         "include_unreviewed_allowed": include_unreviewed_allowed,
+        "merge_existing": merge_existing,
+        "existing_entry_count": existing_entry_count,
         "result_bundle": str(out / "pooleshield_results_bundle.zip") if bundle_output else "",
         "bundle_summary": None,
     }
@@ -234,6 +279,8 @@ def build_file_av_baseline(
         "# PooleShield Trusted File Baseline Build Summary\n\n"
         f"Version: {VERSION}\n\n"
         f"Baseline entries: `{len(entries)}`\n"
+        f"Merge existing: `{merge_existing}`\n"
+        f"Existing entries before merge: `{existing_entry_count}`\n"
         f"Source report: `{source_report}`\n"
         f"Baseline path: `{baseline_file}`\n",
         encoding="utf-8",
@@ -270,30 +317,50 @@ def load_baseline(path: str) -> Dict[str, Dict[str, Any]]:
 
 
 def apply_baseline_to_items(items: Sequence[Dict[str, Any]], baseline_by_hash: Dict[str, Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Apply trusted file/archive baseline to file AV items.
+
+    A direct sha256 match trusts that exact item. For archive entries, a trusted
+    parent archive hash also allows the entry with audit logging. This lets an
+    operator approve a reviewed package archive without weakening default
+    archive/script detection for unknown ZIPs.
+    """
     effective_items: List[Dict[str, Any]] = []
     matches: List[Dict[str, Any]] = []
     for item in items:
         row = dict(item)
         original = str(item.get("effective_decision") or item.get("decision") or "")
         digest = str(item.get("sha256") or "").strip().lower()
+        parent_digest = str(item.get("archive_parent_sha256") or "").strip().lower()
         base = baseline_by_hash.get(digest) if digest else None
+        match_type = "direct_hash" if base else ""
+        if not base and parent_digest:
+            base = baseline_by_hash.get(parent_digest)
+            if base:
+                match_type = "archive_parent_hash"
         if base:
             row["original_decision"] = original
-            row["baseline_status"] = "matched"
+            row["baseline_status"] = "matched" if match_type == "direct_hash" else "archive_parent_matched"
+            row["baseline_match_type"] = match_type
             row["baseline_decision"] = base.get("trusted_decision", "ALLOW_LOG")
             # Keep baseline matches auditable even if the baseline says ALLOW.
             row["effective_decision"] = "ALLOW_LOG"
             labels = norm_list(row.get("labels"))
-            if "baseline_trusted_hash" not in labels:
-                labels.append("baseline_trusted_hash")
+            label = "baseline_trusted_hash" if match_type == "direct_hash" else "baseline_trusted_archive"
+            if label not in labels:
+                labels.append(label)
             row["labels"] = labels
             reasons = norm_list(row.get("reasons"))
-            reasons.append("matched local trusted baseline hash; allow with audit logging")
+            if match_type == "direct_hash":
+                reasons.append("matched local trusted baseline hash; allow with audit logging")
+            else:
+                reasons.append("entry belongs to a reviewed trusted archive hash; allow with audit logging")
             row["reasons"] = list(dict.fromkeys(reasons))
             row["review_status"] = "baseline_applied"
             matches.append({
                 "display_path": row.get("display_path", ""),
                 "sha256": digest,
+                "archive_parent_sha256": parent_digest,
+                "baseline_match_type": match_type,
                 "original_decision": original,
                 "effective_decision": row.get("effective_decision"),
                 "baseline_decision": base.get("trusted_decision", "ALLOW_LOG"),
@@ -301,6 +368,7 @@ def apply_baseline_to_items(items: Sequence[Dict[str, Any]], baseline_by_hash: D
         else:
             row["original_decision"] = original
             row["baseline_status"] = "not_matched"
+            row["baseline_match_type"] = ""
             row["baseline_decision"] = ""
             row["effective_decision"] = original
             row.setdefault("review_status", "not_in_baseline")
@@ -388,11 +456,11 @@ def apply_file_av_baseline(
         csv_rows.append(r)
     write_csv(effective_csv, csv_rows, [
         "display_path", "source_path", "sha256", "kind", "size_bytes", "risk_score",
-        "original_decision", "baseline_status", "baseline_decision", "effective_decision",
+        "original_decision", "baseline_status", "baseline_match_type", "baseline_decision", "effective_decision",
         "labels", "reasons", "review_status",
     ])
     write_json(matches_json, {"summary": {"matches": len(matches)}, "items": matches})
-    write_csv(matches_csv, matches, ["display_path", "sha256", "original_decision", "baseline_decision", "effective_decision"])
+    write_csv(matches_csv, matches, ["display_path", "sha256", "archive_parent_sha256", "baseline_match_type", "original_decision", "baseline_decision", "effective_decision"])
     write_json(summary_json, summary)
     write_effective_baseline_md(effective_md, items, summary)
     summary_md.write_text(

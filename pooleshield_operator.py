@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v3.2.0 operator CLI.
+PooleShield v3.4.2 operator CLI.
 
 Defensive purpose:
   Provide a real operator workflow for scanning folders/log exports, producing
@@ -34,8 +34,9 @@ from file_antivirus import run_file_av_scan
 from file_av_review import build_file_av_review_template, apply_file_av_review_ledger
 from file_av_baseline import build_file_av_baseline, apply_file_av_baseline, PooleShieldUserError
 from file_av_baseline_scan import run_file_av_scan_with_baseline
+from file_av_rules import validate_rule_pack_file
 
-VERSION = "3.3.0"
+VERSION = "3.4.2"
 
 
 def policy_path_for(profile: str) -> str:
@@ -916,6 +917,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     av_scan.add_argument("--max-archive-entry-bytes", type=int, default=2 * 1024 * 1024)
     av_scan.add_argument("--no-archives", action="store_true")
     av_scan.add_argument("--risk-profile", choices=["standard", "developer"], default="standard")
+    av_scan.add_argument("--rule-pack", default=None, help="Optional local JSON rule pack for extra static file-AV labels/risk deltas")
     av_scan.add_argument("--bundle-output", action="store_true")
     av_scan.add_argument("--bundle-path", default=None)
     av_scan.add_argument("--privacy-bundle", action="store_true", default=True)
@@ -929,6 +931,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     scan_file_cmd.add_argument("--max-archive-entry-bytes", type=int, default=2 * 1024 * 1024)
     scan_file_cmd.add_argument("--no-archives", action="store_true")
     scan_file_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default="standard")
+    scan_file_cmd.add_argument("--rule-pack", default=None, help="Optional local JSON rule pack for extra static file-AV labels/risk deltas")
     scan_file_cmd.add_argument("--bundle-output", action="store_true")
     scan_file_cmd.add_argument("--bundle-path", default=None)
     scan_file_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
@@ -944,6 +947,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     scan_folder_cmd.add_argument("--max-archive-entry-bytes", type=int, default=2 * 1024 * 1024)
     scan_folder_cmd.add_argument("--no-archives", action="store_true")
     scan_folder_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default="standard")
+    scan_folder_cmd.add_argument("--rule-pack", default=None, help="Optional local JSON rule pack for extra static file-AV labels/risk deltas")
     scan_folder_cmd.add_argument("--bundle-output", action="store_true")
     scan_folder_cmd.add_argument("--bundle-path", default=None)
     scan_folder_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
@@ -956,6 +960,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     scan_archive_cmd.add_argument("--max-archive-entries", type=int, default=500)
     scan_archive_cmd.add_argument("--max-archive-entry-bytes", type=int, default=2 * 1024 * 1024)
     scan_archive_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default="standard")
+    scan_archive_cmd.add_argument("--rule-pack", default=None, help="Optional local JSON rule pack for extra static file-AV labels/risk deltas")
     scan_archive_cmd.add_argument("--bundle-output", action="store_true")
     scan_archive_cmd.add_argument("--bundle-path", default=None)
     scan_archive_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
@@ -990,6 +995,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     file_av_scan_baseline_cmd.add_argument("--max-archive-entry-bytes", type=int, default=2 * 1024 * 1024)
     file_av_scan_baseline_cmd.add_argument("--no-archives", action="store_true")
     file_av_scan_baseline_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default="standard")
+    file_av_scan_baseline_cmd.add_argument("--rule-pack", default=None, help="Optional local JSON rule pack for extra static file-AV labels/risk deltas")
     file_av_scan_baseline_cmd.add_argument("--bundle-output", action="store_true")
     file_av_scan_baseline_cmd.add_argument("--bundle-path", default=None)
     file_av_scan_baseline_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
@@ -1000,6 +1006,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     file_av_baseline_cmd.add_argument("--baseline-path", default=None, help="Output baseline JSON path. Default: <output-dir>/trusted_file_baseline.json")
     file_av_baseline_cmd.add_argument("--include-decision", action="append", default=None, help="Decision to include. Default: ALLOW and ALLOW_LOG")
     file_av_baseline_cmd.add_argument("--include-unreviewed-allowed", action="store_true", help="Also include unreviewed ALLOW/ALLOW_LOG items. Default only includes explicitly reviewed allow/log decisions.")
+    file_av_baseline_cmd.add_argument("--merge-existing", action="store_true", help="Merge new reviewed baseline entries into an existing baseline JSON instead of replacing it.")
     file_av_baseline_cmd.add_argument("--bundle-output", action="store_true")
     file_av_baseline_cmd.add_argument("--bundle-path", default=None)
     file_av_baseline_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
@@ -1011,6 +1018,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     file_av_apply_baseline_cmd.add_argument("--bundle-output", action="store_true")
     file_av_apply_baseline_cmd.add_argument("--bundle-path", default=None)
     file_av_apply_baseline_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
+
+    rule_pack_cmd = sub.add_parser("rule-pack-validate", help="Validate a local file-AV JSON rule pack")
+    rule_pack_cmd.add_argument("--rule-pack", required=True, help="Rule pack JSON path")
+    rule_pack_cmd.add_argument("--output-dir", default="out/rule_pack_validate")
+    rule_pack_cmd.add_argument("--clean-output", action="store_true")
+    rule_pack_cmd.add_argument("--bundle-output", action="store_true")
+    rule_pack_cmd.add_argument("--bundle-path", default=None)
+    rule_pack_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
 
     bundle_cmd = sub.add_parser("bundle", help="Bundle an existing PooleShield output folder into one ZIP for upload/sharing")
     bundle_cmd.add_argument("--output-dir", required=True, help="Existing output folder to bundle")
@@ -1188,6 +1203,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             max_archive_entry_bytes=args.max_archive_entry_bytes,
             scan_archives=not getattr(args, "no_archives", False),
             risk_profile=getattr(args, "risk_profile", "standard"),
+            rule_pack=getattr(args, "rule_pack", None),
             mode=args.command,
             bundle_output=args.bundle_output,
             bundle_path=args.bundle_path,
@@ -1226,6 +1242,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             max_archive_entry_bytes=args.max_archive_entry_bytes,
             scan_archives=not args.no_archives,
             risk_profile=args.risk_profile,
+            rule_pack=getattr(args, "rule_pack", None),
             bundle_output=args.bundle_output,
             bundle_path=args.bundle_path,
             privacy_bundle=args.privacy_bundle,
@@ -1238,6 +1255,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             baseline_path=args.baseline_path,
             include_decision=args.include_decision,
             include_unreviewed_allowed=args.include_unreviewed_allowed,
+            merge_existing=args.merge_existing,
             bundle_output=args.bundle_output,
             bundle_path=args.bundle_path,
             privacy_bundle=args.privacy_bundle,
@@ -1251,6 +1269,29 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             bundle_path=args.bundle_path,
             privacy_bundle=args.privacy_bundle,
         )
+    elif args.command == "rule-pack-validate":
+        out = ensure_output_dir(args.output_dir, clean=args.clean_output)
+        summary = validate_rule_pack_file(args.rule_pack)
+        summary["mode"] = "rule-pack-validate"
+        summary["output_dir"] = str(out)
+        report_path = out / "rule_pack_validation.json"
+        write_json(str(report_path), summary)
+        md = out / "rule_pack_validation.md"
+        write_text(str(md), "\n".join([
+            "# PooleShield Rule Pack Validation",
+            "",
+            f"Valid: `{summary.get('valid')}`",
+            f"Rules loaded: `{summary.get('rule_pack', {}).get('rules_loaded')}`",
+            f"Rules enabled: `{summary.get('rule_pack', {}).get('rules_enabled')}`",
+            f"Errors: `{summary.get('rule_pack', {}).get('errors')}`",
+        ]))
+        if args.bundle_output:
+            bundle_report = bundle_output_dir(str(out), args.bundle_path, privacy_mode=args.privacy_bundle)
+            summary["bundle_summary"] = bundle_report
+            summary["result_bundle"] = bundle_report.get("bundle_path")
+            write_json(str(report_path), summary)
+            bundle_output_dir(str(out), args.bundle_path, privacy_mode=args.privacy_bundle)
+
     elif args.command == "bundle":
         bundle_report = bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle)
         summary = {

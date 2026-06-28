@@ -1,0 +1,42 @@
+{
+  "version": "3.4.0",
+  "description": "Public-safe example PooleShield local file-AV rule pack. These rules add audit labels/risk for common suspicious static patterns but do not trust, allow, execute, delete, quarantine, or modify files.",
+  "rules": [
+    {
+      "id": "downloads_script_review",
+      "enabled": true,
+      "type": "path_regex",
+      "pattern": "(?i)(downloads|desktop).*[\\\\/].*\\.(ps1|bat|cmd|vbs|js|jse|hta)$",
+      "label": "rule_pack_user_folder_script",
+      "risk_delta": 0.08,
+      "reason": "script-like file in a user-facing folder should be reviewed before opening"
+    },
+    {
+      "id": "suspicious_decoy_filename",
+      "enabled": true,
+      "type": "filename_regex",
+      "pattern": "(?i)(invoice|payment|scan|document|urgent|receipt).*(\\.js|\\.vbs|\\.scr|\\.exe|\\.ps1)$",
+      "label": "rule_pack_suspicious_decoy_name",
+      "risk_delta": 0.14,
+      "reason": "decoy-style filename with executable/script-like extension"
+    },
+    {
+      "id": "archive_script_entry_review",
+      "enabled": true,
+      "type": "archive_entry_regex",
+      "pattern": "(?i)!.*\\.(ps1|bat|cmd|vbs|js|jse|hta|scr|exe)$",
+      "label": "rule_pack_archive_script_entry",
+      "risk_delta": 0.10,
+      "reason": "archive contains script/executable-like entry"
+    },
+    {
+      "id": "text_mentions_credential_theft_tools",
+      "enabled": true,
+      "type": "text_regex",
+      "pattern": "(?i)(mimikatz|procdump.*lsass|sekurlsa|dumpcred)",
+      "label": "rule_pack_credential_theft_reference",
+      "risk_delta": 0.18,
+      "reason": "static text references credential-theft tooling or LSASS dumping"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v3.3 baseline-aware file AV scan workflow.
+PooleShield v3.4 baseline-aware file AV scan workflow.
 
 Run a read-only file/folder AV scan and apply a local trusted-hash baseline in
 one operator command. This removes the manual scan -> apply-baseline -> read
@@ -22,7 +22,7 @@ from file_antivirus import run_file_av_scan
 from file_av_baseline import apply_file_av_baseline, norm_list
 from result_bundler import bundle_output_dir
 
-VERSION = "3.3.0"
+VERSION = "3.4.2"
 REVIEW_DECISIONS = {"REQUIRE_APPROVAL", "BLOCK", "QUARANTINE"}
 
 
@@ -132,6 +132,7 @@ def run_file_av_scan_with_baseline(
     max_archive_entry_bytes: int = 2 * 1024 * 1024,
     scan_archives: bool = True,
     risk_profile: str = "standard",
+    rule_pack: Optional[str] = None,
     bundle_output: bool = False,
     bundle_path: Optional[str] = None,
     privacy_bundle: bool = True,
@@ -147,6 +148,7 @@ def run_file_av_scan_with_baseline(
         max_archive_entry_bytes=max_archive_entry_bytes,
         scan_archives=scan_archives,
         risk_profile=risk_profile,
+        rule_pack=rule_pack,
         mode="file-av-scan-baseline",
         bundle_output=False,
         privacy_bundle=privacy_bundle,
@@ -196,6 +198,7 @@ def run_file_av_scan_with_baseline(
         "paths": list(paths),
         "baseline": baseline,
         "risk_profile": risk_profile,
+        "rule_pack": scan_summary.get("rule_pack", {}) if isinstance(scan_summary, dict) else {},
         "items_scanned": raw_summary.get("items_scanned", len(items)),
         "files_scanned": raw_summary.get("files_scanned", 0),
         "archive_entries_scanned": raw_summary.get("archive_entries_scanned", 0),
