@@ -1,0 +1,56 @@
+{
+  "tool": "PooleShield",
+  "version": "2.1",
+  "release_type": "continuity_handoff",
+  "last_updated": "2026-06-28",
+  "mission": "Defensive, non-executing AI-worm and prompt-contamination protection using Poole Math local-defect logic.",
+  "safety_boundary": {
+    "allowed": [
+      "read text-like files",
+      "score risk",
+      "produce reports",
+      "produce approval queues",
+      "apply human review ledgers",
+      "create advisory allowlist/denylist outputs",
+      "bundle results"
+    ],
+    "not_allowed": [
+      "exploit code",
+      "working worm mechanics",
+      "malware persistence",
+      "credential theft",
+      "automatic destructive enforcement",
+      "deleting or modifying scanned files",
+      "sending emails or network requests"
+    ]
+  },
+  "validated_state": {
+    "latest_validated_release": "v1.2",
+    "real_scan_events": 5,
+    "scan_levels": {
+      "NORMAL": 3,
+      "WATCH": 2
+    },
+    "policy_decisions": {
+      "ALLOW": 2,
+      "ALLOW_LOG": 1,
+      "REQUIRE_APPROVAL": 2
+    },
+    "effective_decisions_after_ledger": {
+      "ALLOW": 2,
+      "ALLOW_LOG": 1,
+      "BLOCK": 1,
+      "QUARANTINE": 1
+    },
+    "allowlist_entries": 1,
+    "denylist_entries": 2,
+    "bundle_hash_mismatches": 0
+  },
+  "current_release": "v1.9",
+  "next_best_move": "Run review-evidence against the current DAT-chat scan output and upload only the privacy bundle.",
+  "new_files_v1_9": [
+    "review_evidence.py",
+    "REVIEW_EVIDENCE_GUIDE.md"
+  ],
+  "current_next_best_move": "Run batch-rollup across completed DAT batches and upload the privacy bundle."
+}

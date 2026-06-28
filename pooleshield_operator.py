@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v2.0 operator CLI.
+PooleShield v2.1.1 operator CLI.
 
 Defensive purpose:
   Provide a real operator workflow for scanning folders/log exports, producing
@@ -29,8 +29,9 @@ from adapter_dat_files import run_dat_inspect
 from adapter_dat_extract import run_dat_extract
 from review_triage import build_triage
 from review_evidence import build_review_evidence
+from batch_rollup import build_rollup
 
-VERSION = "2.0"
+VERSION = "2.1.1"
 
 
 def policy_path_for(profile: str) -> str:
@@ -472,7 +473,7 @@ def run_status(output_dir: str = "out/status", clean_output: bool = False, bundl
         "",
         "## Next best move",
         "",
-        "Read `docs/ROADMAP.md`. Current recommendation: run privacy-safe DAT batches locally, then inspect or export privacy bundles.",
+        "Read `NEXT_BEST_MOVE.md`. Current recommendation: run v2.0 `dat-batch` against the full local ChatGPT logs folder starting at index 50, then upload the privacy bundle for inspection.",
         "",
         "## Context recovery",
         "",
@@ -891,6 +892,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     evidence_cmd.add_argument("--bundle-path", default=None, help="Optional ZIP path for --bundle-output")
     evidence_cmd.add_argument("--privacy-bundle", action="store_true", default=True, help="Exclude local evidence snippets and raw content from bundle")
 
+    rollup_cmd = sub.add_parser("batch-rollup", help="Summarize multiple PooleShield batch output folders or privacy bundles")
+    rollup_cmd.add_argument("--path", action="append", required=True, help="Batch output folder or pooleshield_results_bundle.zip; repeat for each batch")
+    rollup_cmd.add_argument("--output-dir", default="out/batch_rollup", help="Rollup output folder")
+    rollup_cmd.add_argument("--clean-output", action="store_true")
+    rollup_cmd.add_argument("--bundle-output", action="store_true", help="Create one ZIP bundle of the rollup reports")
+    rollup_cmd.add_argument("--bundle-path", default=None, help="Optional ZIP path")
+    rollup_cmd.add_argument("--privacy-bundle", action="store_true", default=True, help="Rollup bundles contain metadata only")
+
     bundle_cmd = sub.add_parser("bundle", help="Bundle an existing PooleShield output folder into one ZIP for upload/sharing")
     bundle_cmd.add_argument("--output-dir", required=True, help="Existing output folder to bundle")
     bundle_cmd.add_argument("--bundle-path", default=None, help="Optional ZIP path")
@@ -1047,6 +1056,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             bundle_path=args.bundle_path,
             privacy_bundle=args.privacy_bundle,
         )
+    elif args.command == "batch-rollup":
+        summary = build_rollup(paths=args.path, output_dir=args.output_dir, clean_output=args.clean_output)
+        if args.bundle_output:
+            bundle_report = bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle)
+            summary["bundle_summary"] = bundle_report
+            summary["result_bundle"] = bundle_report.get("bundle_path")
+            write_json(str(Path(args.output_dir) / "batch_rollup.json"), summary)
     elif args.command == "bundle":
         bundle_report = bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle)
         summary = {

@@ -1,0 +1,21 @@
+# PooleShield v1.7 Windows PowerShell commands
+
+cd "C:\Users\rookp"
+Expand-Archive -Path ".\pooleshield_v0_9_package.zip" -DestinationPath ".\pooleshield_v0_9_package" -Force
+cd ".\pooleshield_v0_9_package"
+
+# Cycle 8 clean-output demo ledger run
+python .\pooleshield_cycle8.py --path .\examples\corpus_scan_fixture --policy-profile balanced --demo-review-decisions --clean-output
+
+# Upload these after the demo run from out\cycle8\:
+# out\cycle8\cycle8_approval_queue.json
+# out\cycle8\cycle8_review_ledger_template.csv
+# out\cycle8\cycle8_review_decisions_demo.csv
+# out\cycle8\cycle8_effective_policy_decisions.json
+# out\cycle8\cycle8_allowlist.json
+# out\cycle8\cycle8_denylist.json
+# out\cycle8\cycle8_scan_report.json
+# out\cycle8\cycle8_policy_decisions.json
+
+# Optional compatibility run with cycle7 filenames, still isolated under out\cycle7\:
+python .\pooleshield_cycle7.py --path .\examples\corpus_scan_fixture --policy-profile balanced --demo-review-decisions --clean-output
