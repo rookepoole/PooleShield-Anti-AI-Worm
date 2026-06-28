@@ -9,3 +9,7 @@ extracted_dat_text/
 normalized_events.jsonl
 review_evidence_local.md
 review_evidence_report.json
+**/out/
+local_trust/
+**/local_trust/
+.pytest_cache/

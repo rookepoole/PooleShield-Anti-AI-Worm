@@ -76,3 +76,8 @@ Use baselines for stable, known-good local files that you have already reviewed.
 If `file-av-apply-baseline` reports that the trusted baseline file is missing, build it first with `file-av-build-baseline` or pass an absolute path to an existing `trusted_file_baseline.json`.
 
 The apply command never creates a baseline automatically because that could silently trust files that have not been reviewed.
+
+
+## v3.3 one-command scan + baseline
+
+Use `file-av-scan-baseline` to run a fresh read-only scan and apply a trusted baseline in one workflow. See `FILE_AV_BASELINE_SCAN_GUIDE.md`.

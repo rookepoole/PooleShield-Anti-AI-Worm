@@ -1,10 +1,8 @@
 # Next Best Move
 
-1. Run `python -m pytest -q` in the v3.2 package.
-2. Build a trusted baseline from the already-reviewed file AV scan.
-3. Rescan the same small real folder.
-4. Apply the baseline and verify trusted helper scripts move to `ALLOW_LOG` without manual ledger editing.
-5. Upload the privacy bundle.
-6. If clean, push v3.2 to GitHub.
+1. Run the v3.3 test suite.
+2. Run `file-av-scan-baseline` against the already-reviewed real-small folder using the local trusted baseline.
+3. Upload the resulting privacy bundle.
+4. If the bundle verifies clean, push v3.3 to GitHub.
 
-Do not use baseline trust for unknown downloads or unreviewed files.
+The goal is to make baseline-aware file AV scanning one command instead of scan -> apply baseline -> interpret two reports.

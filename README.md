@@ -91,3 +91,14 @@ python .\pooleshield_operator.py file-av-apply-baseline --output-dir .\out\file_
 ```
 
 Privacy bundles exclude the local trusted baseline database.
+
+
+## Baseline-aware file AV scan
+
+After building a local trusted baseline, run a read-only file scan and apply that baseline in one command:
+
+```powershell
+python .\pooleshield_operator.py file-av-scan-baseline --path "C:\path\to\folder" --baseline "C:\path\to\trusted_file_baseline.json" --output-dir .\out\file_av_baseline_scan --risk-profile developer --bundle-output --privacy-bundle
+```
+
+This command is still dry-run only. It does not execute, delete, quarantine, or modify scanned files.

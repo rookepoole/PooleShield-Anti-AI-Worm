@@ -33,8 +33,9 @@ from batch_rollup import build_rollup
 from file_antivirus import run_file_av_scan
 from file_av_review import build_file_av_review_template, apply_file_av_review_ledger
 from file_av_baseline import build_file_av_baseline, apply_file_av_baseline, PooleShieldUserError
+from file_av_baseline_scan import run_file_av_scan_with_baseline
 
-VERSION = "3.2.1"
+VERSION = "3.3.0"
 
 
 def policy_path_for(profile: str) -> str:
@@ -976,6 +977,23 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     file_av_apply_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
 
 
+
+    file_av_scan_baseline_cmd = sub.add_parser("file-av-scan-baseline", help="Read-only file/folder AV scan with trusted baseline applied in one command")
+    file_av_scan_baseline_cmd.add_argument("--path", "-p", nargs="+", required=True, help="File/folder/archive path(s) to scan")
+    file_av_scan_baseline_cmd.add_argument("--baseline", required=True, help="trusted_file_baseline.json path")
+    file_av_scan_baseline_cmd.add_argument("--output-dir", default="out/file_av_baseline_scan", help="Output folder")
+    file_av_scan_baseline_cmd.add_argument("--clean-output", action="store_true")
+    file_av_scan_baseline_cmd.add_argument("--no-recursive", action="store_true")
+    file_av_scan_baseline_cmd.add_argument("--include-hidden", action="store_true")
+    file_av_scan_baseline_cmd.add_argument("--max-bytes-per-file", type=int, default=5 * 1024 * 1024)
+    file_av_scan_baseline_cmd.add_argument("--max-archive-entries", type=int, default=500)
+    file_av_scan_baseline_cmd.add_argument("--max-archive-entry-bytes", type=int, default=2 * 1024 * 1024)
+    file_av_scan_baseline_cmd.add_argument("--no-archives", action="store_true")
+    file_av_scan_baseline_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default="standard")
+    file_av_scan_baseline_cmd.add_argument("--bundle-output", action="store_true")
+    file_av_scan_baseline_cmd.add_argument("--bundle-path", default=None)
+    file_av_scan_baseline_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
+
     file_av_baseline_cmd = sub.add_parser("file-av-build-baseline", help="Build a local trusted-hash baseline from reviewed file AV decisions")
     file_av_baseline_cmd.add_argument("--output-dir", default="out/file_av_scan", help="Existing file AV scan output folder")
     file_av_baseline_cmd.add_argument("--report", default=None, help="Optional effective_file_av_decisions.json or file_av_report.json path")
@@ -1189,6 +1207,25 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             output_dir=args.output_dir,
             ledger=args.ledger,
             report_path=args.report,
+            bundle_output=args.bundle_output,
+            bundle_path=args.bundle_path,
+            privacy_bundle=args.privacy_bundle,
+        )
+
+
+    elif args.command == "file-av-scan-baseline":
+        summary = run_file_av_scan_with_baseline(
+            paths=args.path,
+            baseline=args.baseline,
+            output_dir=args.output_dir,
+            clean_output=args.clean_output,
+            recursive=not args.no_recursive,
+            include_hidden=args.include_hidden,
+            max_bytes_per_file=args.max_bytes_per_file,
+            max_archive_entries=args.max_archive_entries,
+            max_archive_entry_bytes=args.max_archive_entry_bytes,
+            scan_archives=not args.no_archives,
+            risk_profile=args.risk_profile,
             bundle_output=args.bundle_output,
             bundle_path=args.bundle_path,
             privacy_bundle=args.privacy_bundle,

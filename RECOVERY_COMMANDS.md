@@ -1,20 +1,21 @@
-# PooleShield Recovery Commands
+# Recovery Commands
 
-## Run v3.2 tests
+## Test v3.3
 
 ```powershell
-cd "C:\Users\rookp\pooleshield_v3_2_package"
+cd "C:\Users\rookp\pooleshield_v3_3_package"
 python -m pytest -q
 ```
 
-## Build baseline from reviewed file AV decisions
+## Baseline-aware file AV scan
 
 ```powershell
-python .\pooleshield_operator.py file-av-build-baseline --output-dir .\out\file_av_real_small_dev --baseline-path .\local_trust\trusted_file_baseline.json --bundle-output --privacy-bundle
-```
-
-## Apply baseline to a rescan
-
-```powershell
-python .\pooleshield_operator.py file-av-apply-baseline --output-dir .\out\file_av_real_small_dev_rescan --baseline .\local_trust\trusted_file_baseline.json --bundle-output --privacy-bundle
+python .\pooleshield_operator.py file-av-scan-baseline `
+  --path "$env:USERPROFILE\Desktop\PooleShieldRealScanSmall" `
+  --baseline "C:\Users\rookp\pooleshield_v3_2_package\local_trust\trusted_file_baseline.json" `
+  --output-dir .\out\file_av_real_small_baseline `
+  --clean-output `
+  --risk-profile developer `
+  --bundle-output `
+  --privacy-bundle
 ```
