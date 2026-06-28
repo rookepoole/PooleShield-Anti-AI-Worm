@@ -1,6 +1,6 @@
 # PooleShield File AV Review Ledger Guide
 
-Version: 3.1.0
+Version: 3.2.0
 
 The file-AV review ledger lets an operator approve known/trusted findings from a read-only file scan without weakening the scanner profile.
 

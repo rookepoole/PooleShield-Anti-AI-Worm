@@ -79,3 +79,15 @@ python .\pooleshield_operator.py file-av-apply-ledger --output-dir .\out\file_av
 ```
 
 The review ledger does not read scanned file contents and does not execute, delete, quarantine, or modify files.
+
+
+## v3.2 Trusted File Baseline
+
+PooleShield can build a local trusted-hash baseline from reviewed file AV decisions and apply it to future scans. Baseline matches become `ALLOW_LOG`, not silent allow, so trusted local files remain auditable.
+
+```powershell
+python .\pooleshield_operator.py file-av-build-baseline --output-dir .\out\file_av_real_small_dev --baseline-path .\local_trust\trusted_file_baseline.json
+python .\pooleshield_operator.py file-av-apply-baseline --output-dir .\out\file_av_real_small_dev_rescan --baseline .\local_trust\trusted_file_baseline.json
+```
+
+Privacy bundles exclude the local trusted baseline database.

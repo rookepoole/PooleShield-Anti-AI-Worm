@@ -108,3 +108,8 @@ python .\pooleshield_operator.py file-av-apply-ledger --output-dir .\out\file_av
 ```
 
 This is intended for local trust decisions such as known helper scripts. Use the standard scanner profile for unknown user files.
+
+
+## Trusted baseline
+
+Use `file-av-build-baseline` and `file-av-apply-baseline` for known-good helper scripts or source/test files that have already been reviewed. See `FILE_AV_BASELINE_GUIDE.md`.

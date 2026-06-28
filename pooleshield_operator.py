@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v3.1.0 operator CLI.
+PooleShield v3.2.0 operator CLI.
 
 Defensive purpose:
   Provide a real operator workflow for scanning folders/log exports, producing
@@ -32,8 +32,9 @@ from review_evidence import build_review_evidence
 from batch_rollup import build_rollup
 from file_antivirus import run_file_av_scan
 from file_av_review import build_file_av_review_template, apply_file_av_review_ledger
+from file_av_baseline import build_file_av_baseline, apply_file_av_baseline, PooleShieldUserError
 
-VERSION = "3.1.0"
+VERSION = "3.2.1"
 
 
 def policy_path_for(profile: str) -> str:
@@ -974,6 +975,25 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     file_av_apply_cmd.add_argument("--bundle-path", default=None)
     file_av_apply_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
 
+
+    file_av_baseline_cmd = sub.add_parser("file-av-build-baseline", help="Build a local trusted-hash baseline from reviewed file AV decisions")
+    file_av_baseline_cmd.add_argument("--output-dir", default="out/file_av_scan", help="Existing file AV scan output folder")
+    file_av_baseline_cmd.add_argument("--report", default=None, help="Optional effective_file_av_decisions.json or file_av_report.json path")
+    file_av_baseline_cmd.add_argument("--baseline-path", default=None, help="Output baseline JSON path. Default: <output-dir>/trusted_file_baseline.json")
+    file_av_baseline_cmd.add_argument("--include-decision", action="append", default=None, help="Decision to include. Default: ALLOW and ALLOW_LOG")
+    file_av_baseline_cmd.add_argument("--include-unreviewed-allowed", action="store_true", help="Also include unreviewed ALLOW/ALLOW_LOG items. Default only includes explicitly reviewed allow/log decisions.")
+    file_av_baseline_cmd.add_argument("--bundle-output", action="store_true")
+    file_av_baseline_cmd.add_argument("--bundle-path", default=None)
+    file_av_baseline_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
+
+    file_av_apply_baseline_cmd = sub.add_parser("file-av-apply-baseline", help="Apply a local trusted-hash baseline to file AV scan results")
+    file_av_apply_baseline_cmd.add_argument("--output-dir", default="out/file_av_scan", help="Existing file AV scan output folder")
+    file_av_apply_baseline_cmd.add_argument("--baseline", required=True, help="trusted_file_baseline.json path")
+    file_av_apply_baseline_cmd.add_argument("--report", default=None, help="Optional file_av_report.json or effective_file_av_decisions.json path")
+    file_av_apply_baseline_cmd.add_argument("--bundle-output", action="store_true")
+    file_av_apply_baseline_cmd.add_argument("--bundle-path", default=None)
+    file_av_apply_baseline_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
+
     bundle_cmd = sub.add_parser("bundle", help="Bundle an existing PooleShield output folder into one ZIP for upload/sharing")
     bundle_cmd.add_argument("--output-dir", required=True, help="Existing output folder to bundle")
     bundle_cmd.add_argument("--bundle-path", default=None, help="Optional ZIP path")
@@ -1173,6 +1193,27 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             bundle_path=args.bundle_path,
             privacy_bundle=args.privacy_bundle,
         )
+
+    elif args.command == "file-av-build-baseline":
+        summary = build_file_av_baseline(
+            output_dir=args.output_dir,
+            report_path=args.report,
+            baseline_path=args.baseline_path,
+            include_decision=args.include_decision,
+            include_unreviewed_allowed=args.include_unreviewed_allowed,
+            bundle_output=args.bundle_output,
+            bundle_path=args.bundle_path,
+            privacy_bundle=args.privacy_bundle,
+        )
+    elif args.command == "file-av-apply-baseline":
+        summary = apply_file_av_baseline(
+            output_dir=args.output_dir,
+            baseline=args.baseline,
+            report_path=args.report,
+            bundle_output=args.bundle_output,
+            bundle_path=args.bundle_path,
+            privacy_bundle=args.privacy_bundle,
+        )
     elif args.command == "bundle":
         bundle_report = bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle)
         summary = {
@@ -1191,4 +1232,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
 
 if __name__ == "__main__":  # pragma: no cover
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except PooleShieldUserError as exc:
+        print(f"PooleShield setup error: {exc}")
+        raise SystemExit(2)
+    except FileNotFoundError as exc:
+        print(f"PooleShield file/path error: {exc}")
+        print("Check the --output-dir, --report, --ledger, or --baseline path and rerun the command.")
+        raise SystemExit(2)

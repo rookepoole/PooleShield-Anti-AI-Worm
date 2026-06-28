@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v3.1 file-AV review ledger.
+PooleShield v3.2 file-AV review ledger.
 
 Defensive purpose:
   Build and apply a human review ledger for PooleShield file/folder AV scan
@@ -24,7 +24,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from result_bundler import bundle_output_dir
 
-VERSION = "3.1.0"
+VERSION = "3.2.0"
 REVIEW_DECISIONS = {"KEEP_ORIGINAL", "ALLOW", "ALLOW_LOG", "REQUIRE_APPROVAL", "BLOCK", "QUARANTINE"}
 DEFAULT_REVIEW_DECISIONS = {"REQUIRE_APPROVAL", "BLOCK", "QUARANTINE"}
 

@@ -1,8 +1,10 @@
 # Next Best Move
 
-1. Run v3.1 tests.
-2. Generate a file-AV review ledger for the real-small developer-profile scan.
-3. Mark the three trusted helper scripts as `ALLOW_LOG` in the ledger.
-4. Apply the ledger with `file-av-apply-ledger`.
-5. Upload the privacy bundle for verification.
-6. If clean, push v3.1 to GitHub.
+1. Run `python -m pytest -q` in the v3.2 package.
+2. Build a trusted baseline from the already-reviewed file AV scan.
+3. Rescan the same small real folder.
+4. Apply the baseline and verify trusted helper scripts move to `ALLOW_LOG` without manual ledger editing.
+5. Upload the privacy bundle.
+6. If clean, push v3.2 to GitHub.
+
+Do not use baseline trust for unknown downloads or unreviewed files.

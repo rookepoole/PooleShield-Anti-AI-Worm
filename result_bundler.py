@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-VERSION = "3.1.0"
+VERSION = "3.2.0"
 
 DEFAULT_EXCLUDE_DIRS = {"__pycache__", ".git", ".venv", "venv", "node_modules"}
 DEFAULT_INCLUDE_SUFFIXES = {
@@ -45,6 +45,10 @@ CONTENT_BEARING_NAME_PATTERNS = [
     # v2.0 privacy fix: the full evidence JSON can contain redacted
     # snippet context, so privacy bundles must exclude it too.
     "review_evidence_report.json",
+    # v3.2 local trust DB can expose local path/hash inventory; keep it local by default.
+    "trusted_file_baseline.json",
+    "trusted_file_baseline.csv",
+    "trusted_file_baseline.md",
 ]
 
 CONTENT_BEARING_DIR_NAMES = {

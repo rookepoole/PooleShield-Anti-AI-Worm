@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v3.1.0 read-only file/folder antivirus scanner.
+PooleShield v3.2.0 read-only file/folder antivirus scanner.
 
 Defensive purpose:
   Provide a second-opinion static scanner for files, folders, scripts, and ZIP
@@ -29,7 +29,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from result_bundler import bundle_output_dir
 
-VERSION = "3.1.0"
+VERSION = "3.2.0"
 
 SCRIPT_EXTENSIONS = {
     ".ps1", ".psm1", ".bat", ".cmd", ".vbs", ".vbe", ".js", ".jse", ".wsf", ".wsh",
@@ -680,7 +680,7 @@ def run_file_av_scan(
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="PooleShield v3.1.0 read-only file AV scanner")
+    parser = argparse.ArgumentParser(description="PooleShield v3.2.0 read-only file AV scanner")
     parser.add_argument("--path", "-p", nargs="+", required=True)
     parser.add_argument("--output-dir", default="out/file_av_scan")
     parser.add_argument("--clean-output", action="store_true")
