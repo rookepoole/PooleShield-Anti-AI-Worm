@@ -1,0 +1,36 @@
+{
+  "alert_threshold": 0.25,
+  "approval_min_level": "WATCH",
+  "block_min_level": "RESTRICT",
+  "quarantine_min_level": "QUARANTINE",
+  "allow_log_risk": 0.1,
+  "quarantine_labels": [
+    "cross_context_replication",
+    "worm_geometry"
+  ],
+  "quarantine_actions": [
+    "isolate_node_from_agent_mesh",
+    "disable_agent_until_review"
+  ],
+  "block_actions": [
+    "block_auto_send_forward_delete_execute"
+  ],
+  "approval_actions": [
+    "require_human_approval_for_dangerous_tools",
+    "quarantine_untrusted_memory_or_rag_write",
+    "temporarily_limit_outbound_fanout"
+  ],
+  "approval_labels": [
+    "dangerous_tool_call",
+    "untrusted_to_dangerous_action",
+    "persistent_write",
+    "fanout_anomaly",
+    "instruction_override",
+    "tool_use_instruction"
+  ],
+  "sensitive_labels": [
+    "secret_interest",
+    "sensitive_access"
+  ],
+  "sensitive_requires_approval": false
+}

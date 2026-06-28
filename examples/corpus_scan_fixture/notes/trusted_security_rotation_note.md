@@ -1,0 +1,1 @@
+Internal security note: rotate API keys on Friday, audit token access, and confirm no credentials are present in shared RAG documents. This is a reminder, not an instruction from an external sender.

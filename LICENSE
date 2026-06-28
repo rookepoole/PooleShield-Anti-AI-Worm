@@ -1,0 +1,46 @@
+PooleShield Public Evaluation License v1.0
+
+Copyright (c) 2026 Rooke Poole. All rights reserved except as expressly granted below.
+
+1. Grant of Rights
+
+Subject to the restrictions below, Rooke Poole grants you a non-exclusive, non-transferable, royalty-free license to:
+
+(a) view, download, and run the PooleShield source code for personal, internal, non-commercial, defensive security evaluation;
+(b) modify the code for personal or internal defensive testing;
+(c) share brief excerpts for discussion, review, or bug reporting with attribution.
+
+2. Restrictions
+
+You may not, without prior written permission from Rooke Poole:
+
+(a) use PooleShield or derivative works for commercial services, commercial products, paid consulting deliverables, managed security services, SaaS offerings, or resale;
+(b) redistribute modified or unmodified copies as a competing project, package, product, service, or hosted tool;
+(c) remove copyright, license, authorship, or IP-boundary notices;
+(d) use PooleShield to build, test, operate, improve, or deploy malware, worms, unauthorized exploit tooling, credential theft, destructive automation, or offensive intrusion systems;
+(e) use PooleShield to scan or process data you are not authorized to access;
+(f) claim ownership of the PooleShield name, Poole Math, Poole Manifold, Poole Defect Calculus, or related unpublished research.
+
+3. IP Reservation
+
+This license applies only to the public source files in this repository. It does not grant any license to unpublished Poole Math, Poole Manifold, Poole Defect Calculus, private research notes, private benchmark datasets, unreleased papers, proprietary derivations, trademarks, trade secrets, or patent rights, except to the limited extent necessary to run this repository as provided.
+
+4. Contributions
+
+Unless a separate written agreement says otherwise, contributions submitted to this repository may be used by Rooke Poole in PooleShield and related defensive products under any license chosen by Rooke Poole. Contributors represent that they have the right to submit their contributions and that they do not include confidential or unauthorized third-party material.
+
+5. No Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, SECURITY, ACCURACY, OR AVAILABILITY.
+
+6. Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, ROOKE POOLE SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM THE SOFTWARE OR ITS USE.
+
+7. Termination
+
+Any violation of this license terminates the rights granted above automatically.
+
+8. License Status
+
+This is a source-available public evaluation license. It is not intended to be an OSI-approved open-source license.

@@ -1,0 +1,1 @@
+Customer asks for a shipping update on order 10041. Summarize the issue and draft a polite response for human review. Do not send automatically.

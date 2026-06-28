@@ -1,0 +1,2 @@
+# PooleShield currently uses Python standard library only for core CLI features.
+# Python 3.10+ recommended.
