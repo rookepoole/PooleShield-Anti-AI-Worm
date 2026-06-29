@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v3.9.0 operator CLI.
+PooleShield v4.0.0 operator CLI.
 
 Defensive purpose:
   Provide a real operator workflow for scanning folders/log exports, producing
@@ -45,8 +45,9 @@ from scan_profiles import SCAN_PROFILE_NAMES, get_scan_profile, profile_catalog,
 from scan_history import (
     init_history_db, record_scan_output, list_history, show_history_scan, write_history_list_reports
 )
+import pooleshield_engine as engine
 
-VERSION = "3.9.0"
+VERSION = "4.0.0"
 
 
 def policy_path_for(profile: str) -> str:
@@ -1099,6 +1100,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     history_show_cmd.add_argument("--history-db", default=None, help="Local SQLite history DB path")
     history_show_cmd.add_argument("--scan-id", type=int, required=True)
 
+    engine_cmd = sub.add_parser("engine-dispatch", help="Run a JSON Engine API request for UI/local bridge testing")
+    engine_cmd.add_argument("--request", required=True, help="JSON request file with operation and params")
+    engine_cmd.add_argument("--output", default=None, help="Optional path to write the JSON response")
+
     bundle_cmd = sub.add_parser("bundle", help="Bundle an existing PooleShield output folder into one ZIP for upload/sharing")
     bundle_cmd.add_argument("--output-dir", required=True, help="Existing output folder to bundle")
     bundle_cmd.add_argument("--bundle-path", default=None, help="Optional ZIP path")
@@ -1106,100 +1111,68 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     args = parser.parse_args(argv)
     if args.command == "config-init":
-        summary = write_default_config(args.config, force=args.force)
+        summary = engine.config_init(args.config, force=args.force)
         print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0
     if args.command == "config-validate":
-        cfg, config_path, validation = load_and_validate_config(args.config, require_existing_paths=args.require_existing_paths)
-        summary = validation
-        summary["effective_config"] = cfg
+        summary = engine.config_validate(args.config, require_existing_paths=args.require_existing_paths)
         print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0 if summary.get("valid") else 2
     if args.command == "config-show":
-        cfg, config_path, validation = load_and_validate_config(args.config)
-        summary = {
-            "tool": "PooleShield config show",
-            "version": VERSION,
-            "config_path": str(config_path) if config_path else None,
-            "used_config_file": config_path is not None,
-            "validation": validation,
-            "effective_config": cfg,
-        }
+        summary = engine.config_show(args.config)
         print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0
 
     if args.command == "profile-list":
-        cfg, config_path, validation = load_and_validate_config(args.config)
-        summary = profile_catalog(cfg.get("scan_profiles"))
-        summary["config_path"] = str(config_path) if config_path else None
-        summary["validation"] = validation
+        summary = engine.profile_list(args.config)
         print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0
 
     if args.command == "profile-show":
-        cfg, config_path, validation = load_and_validate_config(args.config)
-        try:
-            profile = get_scan_profile(args.name, cfg.get("scan_profiles"))
-        except ScanProfileError as exc:
-            raise PooleShieldConfigError(str(exc)) from exc
-        print(json.dumps({
-            "tool": "PooleShield scan profile",
-            "version": VERSION,
-            "config_path": str(config_path) if config_path else None,
-            "validation": validation,
-            "profile": profile,
-        }, indent=2, ensure_ascii=False))
+        summary = engine.profile_show(args.name, args.config)
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0
 
-    def _resolve_history_db_from_args(args_obj: Any) -> str:
-        cfg, config_path, validation = load_and_validate_config(getattr(args_obj, "config", None))
-        defaults = cfg.get("defaults", {})
-        base_dir = config_path.parent if config_path else Path.cwd()
-        raw = getattr(args_obj, "history_db", None) or defaults.get("history_db")
-        if not raw:
-            raise PooleShieldConfigError("history_db is required; pass --history-db or set defaults.history_db in config")
-        from pooleshield_config import expand_config_path
-        return expand_config_path(raw, base_dir=base_dir) or str(Path("local_history") / "pooleshield_scan_history.sqlite")
-
     if args.command == "history-init":
-        history_db = _resolve_history_db_from_args(args)
-        summary = init_history_db(history_db)
+        summary = engine.history_init(config=args.config, history_db=args.history_db)
         print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0
 
     if args.command == "history-record":
-        history_db = _resolve_history_db_from_args(args)
-        summary = record_scan_output(args.output_dir, history_db, notes=args.notes)
-        if args.bundle_output:
-            bundle_report = bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle)
-            summary["bundle_summary"] = bundle_report
-            summary["result_bundle"] = bundle_report.get("bundle_path")
-            write_json(str(Path(args.output_dir) / "SCAN_HISTORY_RECORD.json"), summary)
-            bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle)
+        summary = engine.history_record(
+            output_dir=args.output_dir,
+            config=args.config,
+            history_db=args.history_db,
+            notes=args.notes,
+            bundle_output=args.bundle_output,
+            bundle_path=args.bundle_path,
+            privacy_bundle=args.privacy_bundle,
+        )
         print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0
 
     if args.command == "history-list":
-        history_db = _resolve_history_db_from_args(args)
-        summary = list_history(history_db, limit=args.limit)
-        if args.output_dir:
-            reports = write_history_list_reports(args.output_dir, summary)
-            summary["output_dir"] = args.output_dir
-            summary["reports"] = reports
-            if args.bundle_output:
-                bundle_report = bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle)
-                summary["bundle_summary"] = bundle_report
-                summary["result_bundle"] = bundle_report.get("bundle_path")
-                write_json(str(Path(args.output_dir) / "SCAN_HISTORY_LIST.json"), summary)
-                bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle)
+        summary = engine.history_list(
+            config=args.config,
+            history_db=args.history_db,
+            limit=args.limit,
+            output_dir=args.output_dir,
+            bundle_output=args.bundle_output,
+            bundle_path=args.bundle_path,
+            privacy_bundle=args.privacy_bundle,
+        )
         print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0
 
     if args.command == "history-show":
-        history_db = _resolve_history_db_from_args(args)
-        summary = show_history_scan(history_db, scan_id=args.scan_id)
+        summary = engine.history_show(scan_id=args.scan_id, config=args.config, history_db=args.history_db)
         print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0
+
+    if args.command == "engine-dispatch":
+        summary = engine.dispatch_file(args.request, output_path=args.output)
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0 if summary.get("ok") else 2
 
     if args.command == "scan":
         summary = run_pipeline(
@@ -1403,38 +1376,28 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
 
     elif args.command == "file-av-scan-baseline":
-        resolved = resolve_file_av_baseline_scan_options(args)
-        summary = run_file_av_scan_with_baseline(
+        summary = engine.file_av_scan_baseline(
             paths=args.path,
-            baseline=resolved["baseline"],
-            output_dir=resolved["output_dir"],
+            config=args.config,
+            baseline=args.baseline,
+            output_dir=args.output_dir,
             clean_output=args.clean_output,
-            recursive=resolved["recursive"],
-            include_hidden=resolved["include_hidden"],
-            max_bytes_per_file=resolved["max_bytes_per_file"],
-            max_archive_entries=resolved["max_archive_entries"],
-            max_archive_entry_bytes=resolved["max_archive_entry_bytes"],
-            scan_archives=resolved["scan_archives"],
-            risk_profile=resolved["risk_profile"],
-            scan_profile=resolved["scan_profile"],
-            rule_pack=resolved["rule_pack"],
+            no_recursive=args.no_recursive,
+            include_hidden=args.include_hidden,
+            max_bytes_per_file=args.max_bytes_per_file,
+            max_archive_entries=args.max_archive_entries,
+            max_archive_entry_bytes=args.max_archive_entry_bytes,
+            no_archives=args.no_archives,
+            scan_profile=args.scan_profile,
+            risk_profile=args.risk_profile,
+            rule_pack=args.rule_pack,
             bundle_output=args.bundle_output,
             bundle_path=args.bundle_path,
             privacy_bundle=args.privacy_bundle,
+            history_db=args.history_db,
+            record_history=args.record_history,
+            history_notes=args.history_notes,
         )
-        summary["config_summary"] = resolved.get("config_summary")
-        if resolved.get("record_history"):
-            history = record_scan_output(summary["output_dir"], resolved["history_db"], notes=resolved.get("history_notes", ""))
-            summary["history_record"] = history
-            write_json(str(Path(summary["output_dir"]) / "RUN_SUMMARY_FILE_AV_BASELINE_SCAN.json"), summary)
-            if args.bundle_output:
-                bundle_report = bundle_output_dir(summary["output_dir"], args.bundle_path, privacy_mode=args.privacy_bundle)
-                summary["bundle_summary"] = bundle_report
-                summary["result_bundle"] = bundle_report.get("bundle_path")
-                write_json(str(Path(summary["output_dir"]) / "RUN_SUMMARY_FILE_AV_BASELINE_SCAN.json"), summary)
-                bundle_output_dir(summary["output_dir"], args.bundle_path, privacy_mode=args.privacy_bundle)
-        else:
-            write_json(str(Path(summary["output_dir"]) / "RUN_SUMMARY_FILE_AV_BASELINE_SCAN.json"), summary)
 
     elif args.command == "file-av-final-summary":
         summary = build_final_scan_summary(
@@ -1469,29 +1432,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             privacy_bundle=args.privacy_bundle,
         )
     elif args.command == "rule-pack-validate":
-        resolved_rule = resolve_rule_pack_validate_options(args)
-        out = ensure_output_dir(resolved_rule["output_dir"], clean=args.clean_output)
-        summary = validate_rule_pack_file(resolved_rule["rule_pack"])
-        summary["mode"] = "rule-pack-validate"
-        summary["output_dir"] = str(out)
-        summary["config_summary"] = resolved_rule.get("config_summary")
-        report_path = out / "rule_pack_validation.json"
-        write_json(str(report_path), summary)
-        md = out / "rule_pack_validation.md"
-        write_text(str(md), "\n".join([
-            "# PooleShield Rule Pack Validation",
-            "",
-            f"Valid: `{summary.get('valid')}`",
-            f"Rules loaded: `{summary.get('rule_pack', {}).get('rules_loaded')}`",
-            f"Rules enabled: `{summary.get('rule_pack', {}).get('rules_enabled')}`",
-            f"Errors: `{summary.get('rule_pack', {}).get('errors')}`",
-        ]))
-        if args.bundle_output:
-            bundle_report = bundle_output_dir(str(out), args.bundle_path, privacy_mode=args.privacy_bundle)
-            summary["bundle_summary"] = bundle_report
-            summary["result_bundle"] = bundle_report.get("bundle_path")
-            write_json(str(report_path), summary)
-            bundle_output_dir(str(out), args.bundle_path, privacy_mode=args.privacy_bundle)
+        summary = engine.rule_pack_validate(
+            config=args.config,
+            rule_pack=args.rule_pack,
+            output_dir=args.output_dir,
+            clean_output=args.clean_output,
+            bundle_output=args.bundle_output,
+            bundle_path=args.bundle_path,
+            privacy_bundle=args.privacy_bundle,
+        )
 
     elif args.command == "bundle":
         bundle_report = bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle)

@@ -1,185 +1,91 @@
-# PooleShield v3.0.1
+# PooleShield v4.0.0
 
-PooleShield is a privacy-first defensive scanner for AI-agent workflows, exported chat/log archives, prompt-injection propagation, and local file/folder antivirus triage.
+PooleShield is a privacy-first second-opinion defensive scanner for suspicious files, archives, scripts, AI-agent logs, exported chat/data bundles, and local workflow artifacts.
 
-PooleShield is defensive only. It reads local artifacts, scores static/local-geometry risk signals, and writes review reports. It does **not** execute scanned content, follow links, send emails, delete files, quarantine files, kill processes, install drivers, or modify the scanned corpus.
+PooleShield is defensive only. It reads local artifacts, scores static/local risk signals, and writes review reports. It does **not** execute scanned content, follow links, send emails, delete files, quarantine files, kill processes, install drivers, or modify the scanned corpus.
 
-## v3.0.1 milestone
+## v4.0 milestone
 
-v3.0.1 adds a read-only second-opinion file/folder antivirus scanner:
-
-```text
-scan-file
-scan-folder
-scan-archive
-av-scan
-```
-
-The scanner reports hashes, metadata, extension/magic mismatch, script risk, entropy risk, archive-entry risk, and dry-run quarantine recommendations.
-
-## Quick AV test
-
-```powershell
-python .\pooleshield_operator.py scan-folder --path .\examples\file_av_fixture --output-dir .\out\file_av_demo --clean-output --bundle-output --privacy-bundle
-```
-
-Upload only:
+v4.0 adds a UI-ready Engine API layer:
 
 ```text
-out\file_av_demo\pooleshield_results_bundle.zip
+pooleshield_engine.py
+ENGINE_API_GUIDE.md
+engine-dispatch
+config/profile/history/rule-pack/baseline-scan engine functions
+JSON request/response bridge
 ```
 
-## DAT/archive workflow
+The operator CLI still works, but the newest config/profile/history/baseline-aware workflow now has a callable backend for future desktop UI work.
 
-The v2.x deterministic DAT workflow remains available:
+## Quick local checks
 
 ```powershell
-python .\pooleshield_operator.py dat-batch --path "C:\Users\rookp\Desktop\ChatGPT logs" --output-dir .\out\dat_batch_0050 --clean-output --start-index 50 --batch-size 150 --policy-profile balanced --bundle-output --privacy-bundle
+python -m pytest -q
+python .\tools\repo_safety_check.py --root .
+python .\pooleshield_operator.py profile-list
+python .\pooleshield_operator.py profile-show --name developer
 ```
 
-Roll up completed batches:
+## Engine API smoke test
 
 ```powershell
-python .\pooleshield_operator.py batch-rollup --path "dat_batch_0050=.\out\dat_batch_0050\dat_chat_scan" --output-dir .\out\dat_archive_rollup --bundle-output --privacy-bundle
+@'
+{
+  "operation": "profile.show",
+  "params": {
+    "name": "developer"
+  }
+}
+'@ | Set-Content .\engine_request.json
+
+python .\pooleshield_operator.py engine-dispatch --request .\engine_request.json --output .\engine_response.json
 ```
-
-## Privacy rules
-
-Privacy bundles exclude content-bearing files such as:
-
-```text
-normalized_events.jsonl
-extracted_dat_text/
-review_evidence_local.md
-review_evidence_report.json
-```
-
-The file AV scanner does not include raw file contents or matched snippets in its reports.
-
-## IP boundary
-
-The public/source-available code is not a publication of private Poole Math, Poole Manifold, Poole Defect Calculus, private benchmark data, or unpublished manuscripts. See `NOTICE.md`, `LICENSE`, and `docs/IP_BOUNDARIES.md` when present.
-
-## Guide files
-
-- `FILE_AV_GUIDE.md` — v3.0.1 file/folder AV scanner
-- `DAT_BATCH_GUIDE.md` — deterministic DAT batch workflow
-- `BATCH_ROLLUP_GUIDE.md` — metadata rollup dashboard
-- `PRIVACY_BUNDLE_GUIDE.md` — privacy-safe upload workflow
-- `PROJECT_STATE.md` / `NEXT_BEST_MOVE.md` — continuity files
-
-
-## File AV review ledger
-
-PooleShield v3.1 adds a metadata-only review ledger for file/folder AV scans. Use it to mark known trusted helper scripts or local source/test artifacts as `ALLOW_LOG` without weakening the standard scanner profile.
-
-```powershell
-python .\pooleshield_operator.py file-av-review --output-dir .\out\file_av_scan --bundle-output --privacy-bundle
-python .\pooleshield_operator.py file-av-apply-ledger --output-dir .\out\file_av_scan --ledger .\out\file_av_scan\file_av_review_ledger_template.csv --bundle-output --privacy-bundle
-```
-
-The review ledger does not read scanned file contents and does not execute, delete, quarantine, or modify files.
-
-
-## v3.2 Trusted File Baseline
-
-PooleShield can build a local trusted-hash baseline from reviewed file AV decisions and apply it to future scans. Baseline matches become `ALLOW_LOG`, not silent allow, so trusted local files remain auditable.
-
-```powershell
-python .\pooleshield_operator.py file-av-build-baseline --output-dir .\out\file_av_real_small_dev --baseline-path .\local_trust\trusted_file_baseline.json
-python .\pooleshield_operator.py file-av-apply-baseline --output-dir .\out\file_av_real_small_dev_rescan --baseline .\local_trust\trusted_file_baseline.json
-```
-
-Privacy bundles exclude the local trusted baseline database.
-
 
 ## Baseline-aware file AV scan
 
 After building a local trusted baseline, run a read-only file scan and apply that baseline in one command:
 
 ```powershell
-python .\pooleshield_operator.py file-av-scan-baseline --path "C:\path\to\folder" --baseline "C:\path\to\trusted_file_baseline.json" --output-dir .\out\file_av_baseline_scan --risk-profile developer --bundle-output --privacy-bundle
-```
-
-This command is still dry-run only. It does not execute, delete, quarantine, or modify scanned files.
-
-
-## v3.5 local rule packs
-
-PooleShield supports optional JSON rule packs for read-only file AV scans. Rule packs can add labels/risk deltas for local policy, suspicious filenames, archive entries, and static text patterns. Rule packs do not execute, delete, quarantine, modify, or silently allow files.
-
-## v3.5 archive-aware baseline
-
-v3.5 allows a reviewed archive hash in the local trusted baseline to cover its archive entries with `ALLOW_LOG` on future scans. Unknown archives and script entries remain conservative. This is intended for trusted release packages and developer workflows, not for silently allowing arbitrary downloaded ZIP files.
-
-
-## v3.5 final scan summary
-
-Baseline-aware file AV scans now emit `FINAL_SCAN_SUMMARY.md/json` so operators can read one final effective verdict after rules and baselines are applied. Original scan decisions remain available for audit, but the final summary is the recommended first report.
-
-
-## CI safety checks
-
-PooleShield v3.6 includes GitHub Actions and a local repo safety checker.
-
-Before pushing, run:
-
-```powershell
-python -m pytest -q
-python .\tools\repo_safety_check.py --root .
-```
-
-The safety checker blocks private/generated artifacts such as scan outputs, result bundles, local baselines, decoded DAT text, normalized event JSONL, and local review evidence.
-
-## v3.8 local configuration
-
-PooleShield v3.8 adds a local config file so repeated commands do not need to restate baseline, rule-pack, output, risk-profile, privacy-bundle, and scan-limit defaults.
-
-Create a local config:
-
-```powershell
-python .\pooleshield_operator.py config-init --config .\pooleshield_config.json
-python .\pooleshield_operator.py config-validate --config .\pooleshield_config.json
-```
-
-Use config with the baseline-aware file AV scan:
-
-```powershell
 python .\pooleshield_operator.py file-av-scan-baseline `
   --config .\pooleshield_config.json `
-  --path "$env:USERPROFILE\Desktop\PooleShieldRealScanSmall" `
+  --path "C:\path\to\folder" `
   --clean-output `
   --bundle-output `
   --privacy-bundle
 ```
 
-Local `pooleshield_config.json` files are ignored by Git because they may contain machine-specific baseline paths. Use `examples/pooleshield_config.example.json` as the public-safe reference.
+This command is still dry-run only. It does not execute, delete, quarantine, or modify scanned files.
 
+## Privacy rules
 
-## v3.8 scan profiles
+Privacy bundles exclude content-bearing/private files such as:
 
-PooleShield v3.8 adds named file-AV scan profiles: `quick`, `standard`, `developer`, `strict`, `deep`, `archive-heavy`, and `privacy-sensitive`. Profiles tune scan breadth, archive limits, hidden-file handling, and file-AV risk profile while keeping the same read-only/dry-run safety boundary.
-
-Useful commands:
-
-```powershell
-python .\pooleshield_operator.py profile-list
-python .\pooleshield_operator.py profile-show --name developer
-python .\pooleshield_operator.py file-av-scan-baseline --config .\pooleshield_config.json --scan-profile developer --path <folder> --clean-output --bundle-output --privacy-bundle
+```text
+normalized_events.jsonl
+extracted_dat_text/
+extracted_dat_content/
+extracted_text_like/
+review_evidence_local.md
+review_evidence_report.json
+trusted_file_baseline.json
+pooleshield_config.json
+local_history/*.sqlite
 ```
 
-## v3.9 local scan history
+The file AV scanner does not include raw file contents or matched snippets in its reports.
 
-PooleShield v3.9 adds a local SQLite scan-history layer for UI/dashboard readiness. It records scan metadata such as timestamp, final verdict, scan profile, baseline matches, and action-item counts. It does not store raw scanned file contents, decoded DAT text, baseline JSON, or local review evidence.
+## Guide files
 
-Commands:
+- `ENGINE_API_GUIDE.md` — v4.0 Python/JSON Engine API bridge
+- `CONFIG_GUIDE.md` — local config defaults
+- `SCAN_PROFILE_GUIDE.md` — named scan profiles
+- `SCAN_HISTORY_GUIDE.md` — local metadata-only scan history
+- `FILE_AV_GUIDE.md` — read-only file/folder AV scanner
+- `FILE_AV_BASELINE_SCAN_GUIDE.md` — baseline-aware one-command scan
+- `PRIVACY_BUNDLE_GUIDE.md` — privacy-safe upload workflow
+- `PROJECT_STATE.md` / `NEXT_BEST_MOVE.md` — continuity files
 
-```powershell
-python .\pooleshield_operator.py history-init --history-db .\local_history\pooleshield_scan_history.sqlite
-python .\pooleshield_operator.py history-record --history-db .\local_history\pooleshield_scan_history.sqlite --output-dir .\out\file_av_scan
-python .\pooleshield_operator.py history-list --history-db .\local_history\pooleshield_scan_history.sqlite --limit 10
-python .\pooleshield_operator.py history-show --history-db .\local_history\pooleshield_scan_history.sqlite --scan-id 1
-```
+## IP boundary
 
-`local_history/`, `*.sqlite`, `*.sqlite3`, and `*.db` are local/private and blocked by repo safety checks.
-
+The public/source-available code is not a publication of private Poole Math, Poole Manifold, Poole Defect Calculus, private benchmark data, or unpublished manuscripts. See `NOTICE.md`, `LICENSE`, and `docs/IP_BOUNDARIES.md` when present.

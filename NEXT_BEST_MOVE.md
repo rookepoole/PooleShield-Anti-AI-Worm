@@ -1,25 +1,47 @@
 # Next Best Move
 
-Test PooleShield v3.9 locally:
+Test PooleShield v4.0 locally:
 
 ```powershell
 python -m pytest -q
-python .	oolsepo_safety_check.py --root .
-python .\pooleshield_operator.py history-init --history-db .\local_history\pooleshield_scan_history.sqlite
+python .\tools\repo_safety_check.py --root .
+python .\pooleshield_operator.py profile-list
+python .\pooleshield_operator.py profile-show --name developer
 ```
 
-Then run a config-driven baseline-aware file-AV scan with scan history enabled:
+Test the Engine API bridge:
+
+```powershell
+@'
+{
+  "operation": "profile.show",
+  "params": {
+    "name": "developer"
+  }
+}
+'@ | Set-Content .\engine_request.json
+
+python .\pooleshield_operator.py engine-dispatch --request .\engine_request.json --output .\engine_response.json
+```
+
+Then run a config-driven baseline-aware file-AV scan through the v4.0 engine path:
 
 ```powershell
 python .\pooleshield_operator.py file-av-scan-baseline `
   --config .\pooleshield_config.json `
   --path "$env:USERPROFILE\Desktop\PooleShieldRealScanSmall" `
-  --record-history `
   --clean-output `
   --bundle-output `
   --privacy-bundle
 ```
 
-Verify `SCAN_HISTORY_RECORD.json`, `SCAN_HISTORY_RECORD.md`, and `history-list` output.
+Expected final verdict remains:
 
-If clean, push v3.9 to GitHub. Next build after v3.9: v4.0 engine API refactor for UI readiness.
+```text
+CLEAN_AFTER_POLICY
+0 REQUIRE_APPROVAL
+0 BLOCK
+0 QUARANTINE
+```
+
+Upload the privacy bundle for verification before pushing v4.0.
