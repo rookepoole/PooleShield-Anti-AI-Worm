@@ -1,10 +1,10 @@
 # PooleShield Roadmap
 
-## Current release: v4.2
+## Current release: v4.3
 
 PooleShield now has a stable Engine API, a local desktop prototype, and a first metadata-only Results UI for operator review.
 
-## Completed through v4.2
+## Completed through v4.3
 
 - v3.6: CI safety checks and repo privacy guardrails.
 - v3.7: local configuration system.
@@ -12,7 +12,7 @@ PooleShield now has a stable Engine API, a local desktop prototype, and a first 
 - v3.9: local metadata-only SQLite scan history.
 - v4.0: Engine API and JSON request/response bridge.
 - v4.1: desktop UI prototype using PySide6 / Qt.
-- v4.2: Results UI with metadata table, filters, detail panel, and privacy-bundle path workflow.
+- v4.3: Results UI with metadata table, filters, detail panel, and privacy-bundle path workflow.
 
 ## Next: v4.3 Baseline Manager UI
 

@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
 
-VERSION = "4.2.0"
+VERSION = "4.3.0"
 
 FORBIDDEN_DIR_NAMES = {
     "out",
@@ -50,6 +50,8 @@ FORBIDDEN_FILE_NAMES = {
     "engine_request.json",
     "engine_response.json",
     "results_response.json",
+    "baseline_response.json",
+    "baseline_diff_response.json",
 }
 
 FORBIDDEN_SUFFIXES = {

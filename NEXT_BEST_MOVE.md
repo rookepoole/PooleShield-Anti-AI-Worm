@@ -1,6 +1,6 @@
 # Next Best Move
 
-Test PooleShield v4.2 locally and verify the Results UI path.
+Test PooleShield v4.3 locally and verify the Baseline Manager UI path.
 
 ```powershell
 python -m pytest -q
@@ -9,38 +9,41 @@ python .\tools\privacy_leak_check.py --root .
 python .\pooleshield_operator.py desktop --status
 ```
 
-Install the UI dependency and launch the prototype:
+Verify the metadata-only baseline loader:
 
 ```powershell
-python -m pip install PySide6
-python .\pooleshield_operator.py desktop
+python .\pooleshield_operator.py baseline-load `
+  --baseline C:\path\to\trusted_file_baseline.json `
+  --decision ALLOW_LOG `
+  --limit 25 `
+  --output .\baseline_response.json
 ```
 
-Run a baseline-aware scan either from the UI or from the CLI. If using the CLI for a reproducible v4.2 bundle:
+Optional baseline diff check:
+
+```powershell
+python .\pooleshield_operator.py baseline-diff `
+  --baseline-a C:\path\to\old_trusted_file_baseline.json `
+  --baseline-b C:\path\to\new_trusted_file_baseline.json `
+  --limit 25 `
+  --output .\baseline_diff_response.json
+```
+
+Run a baseline-aware scan either from the UI or from the CLI. If using the CLI for a reproducible v4.3 bundle:
 
 ```powershell
 python .\pooleshield_operator.py file-av-scan-baseline `
   --config .\pooleshield_config.json `
-  --path "$env:USERPROFILE\Desktop\PooleShieldRealScanSmall" `
+  --path C:\path\to\scan-folder `
   --clean-output `
   --bundle-output `
   --privacy-bundle
 ```
 
-Verify the metadata-only Results loader:
-
-```powershell
-python .\pooleshield_operator.py results-load `
-  --output-dir .\out\file_av_desktop_v4_2 `
-  --decision ALLOW_LOG `
-  --limit 25 `
-  --output .\results_response.json
-```
-
 Upload only the generated privacy bundle:
 
 ```text
-out\file_av_desktop_v4_2\pooleshield_results_bundle.zip
+out\file_av_desktop_v4_3\pooleshield_results_bundle.zip
 ```
 
-If the bundle verifies clean, push v4.2. After v4.2, continue to v4.3 Baseline Manager UI.
+If the bundle verifies clean, push v4.3. After v4.3, continue to v4.4 Rule Pack Editor UI.

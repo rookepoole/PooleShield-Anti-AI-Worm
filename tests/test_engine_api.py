@@ -11,6 +11,8 @@ from pooleshield_engine import (
     config_validate,
     dispatch,
     file_av_scan_baseline,
+    baseline_load,
+    baseline_diff,
     profile_list,
     results_load,
     profile_show,
@@ -148,3 +150,58 @@ def test_operator_results_load_cli(tmp_path: Path):
     assert data["ok"] is True
     assert data["operation"] == "results.load"
     assert data["result"]["items_returned"] <= 5
+
+
+
+def test_engine_baseline_load_and_diff_metadata_only(tmp_path: Path):
+    root, baseline_path = _make_baseline(tmp_path)
+    loaded = baseline_load(str(baseline_path), decision="ALLOW_LOG", limit=10)
+    assert loaded["engine_version"] == VERSION
+    assert loaded["operation"] == "baseline.load"
+    assert loaded["safety_boundary"]["metadata_only"] is True
+    assert loaded["entries_returned"] > 0
+    first = loaded["entries"][0]
+    assert "sha256" in first
+    assert "path_hints" in first
+    assert first["trusted_decision"] == "ALLOW_LOG"
+
+    baseline_b = tmp_path / "local_trust" / "trusted_file_baseline_b.json"
+    data = json.loads(baseline_path.read_text(encoding="utf-8"))
+    data["entries"] = list(data["entries"]) + [{
+        "sha256": "a" * 64,
+        "trusted_decision": "ALLOW_LOG",
+        "kind": "file",
+        "size_bytes": 1,
+        "labels": ["manual_fixture"],
+        "path_hints": ["extra.txt"],
+    }]
+    baseline_b.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    diff = baseline_diff(str(baseline_path), str(baseline_b), limit=10)
+    assert diff["operation"] == "baseline.diff"
+    assert diff["counts"]["added_in_b"] == 1
+    assert diff["safety_boundary"]["baseline_files_modified"] is False
+
+
+def test_operator_baseline_load_cli(tmp_path: Path):
+    root, baseline_path = _make_baseline(tmp_path)
+    repo = Path(__file__).resolve().parents[1]
+    response = tmp_path / "baseline_response.json"
+    cmd = [
+        sys.executable,
+        str(repo / "pooleshield_operator.py"),
+        "baseline-load",
+        "--baseline",
+        str(baseline_path),
+        "--decision",
+        "ALLOW_LOG",
+        "--limit",
+        "5",
+        "--output",
+        str(response),
+    ]
+    result = subprocess.run(cmd, cwd=repo, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60)
+    assert result.returncode == 0, result.stderr
+    data = json.loads(response.read_text(encoding="utf-8"))
+    assert data["ok"] is True
+    assert data["operation"] == "baseline.load"
+    assert data["result"]["entries_returned"] <= 5

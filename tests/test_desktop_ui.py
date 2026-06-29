@@ -7,9 +7,12 @@ from pooleshield_desktop import (
     build_history_list_request,
     build_profile_request,
     build_results_load_request,
+    build_baseline_load_request,
+    build_baseline_diff_request,
     qt_status,
     summarize_engine_response,
     summarize_results_response,
+    summarize_baseline_response,
 )
 
 
@@ -45,6 +48,18 @@ def test_desktop_request_builders():
     assert results["params"]["label"] == "script"
     assert results["params"]["text"] == "ledger"
     assert results["params"]["limit"] == 25
+    baseline = build_baseline_load_request("trusted_file_baseline.json", decision="ALLOW_LOG", kind="file", text="helper", limit=25)
+    assert baseline["operation"] == "baseline.load"
+    assert baseline["params"]["baseline"] == "trusted_file_baseline.json"
+    assert baseline["params"]["decision"] == "ALLOW_LOG"
+    assert baseline["params"]["kind"] == "file"
+    assert baseline["params"]["text"] == "helper"
+    assert baseline["params"]["limit"] == 25
+    diff = build_baseline_diff_request("a.json", "b.json", limit=7)
+    assert diff["operation"] == "baseline.diff"
+    assert diff["params"]["baseline_a"] == "a.json"
+    assert diff["params"]["baseline_b"] == "b.json"
+    assert diff["params"]["limit"] == 7
 
 
 def test_desktop_response_summary():
@@ -76,7 +91,7 @@ def test_desktop_results_summary():
             "items_after_filter": 12,
             "items_returned": 12,
             "baseline_matches": 102,
-            "bundle_path": "out/file_av_desktop_v4_2/pooleshield_results_bundle.zip",
+            "bundle_path": "out/file_av_desktop_v4_3/pooleshield_results_bundle.zip",
         },
     }
     summary = summarize_results_response(ok)
@@ -84,4 +99,23 @@ def test_desktop_results_summary():
     assert "items_after_filter=12" in summary
     assert "bundle=" in summary
     bad = summarize_results_response({"ok": False, "error_type": "FileNotFoundError", "error": "missing"})
+    assert bad.startswith("ERROR [FileNotFoundError]")
+
+
+
+def test_desktop_baseline_summary():
+    ok = {
+        "ok": True,
+        "result": {
+            "mode": "baseline-load",
+            "total_entries_available": 10,
+            "entries_after_filter": 3,
+            "entries_returned": 3,
+            "baseline_path": "local_trust/trusted_file_baseline.json",
+        },
+    }
+    summary = summarize_baseline_response(ok)
+    assert "baseline-load" in summary
+    assert "entries_returned=3" in summary
+    bad = summarize_baseline_response({"ok": False, "error_type": "FileNotFoundError", "error": "missing baseline"})
     assert bad.startswith("ERROR [FileNotFoundError]")

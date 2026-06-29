@@ -29,3 +29,7 @@ pooleshield_scan_history.*
 engine_request.json
 engine_response.json
 results_response.json
+
+baseline_response.json
+
+baseline_diff_response.json

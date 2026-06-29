@@ -1,8 +1,8 @@
-# PooleShield v4.2 Results UI Guide
+# PooleShield v4.3 Results UI Guide
 
-Version: 4.2.0
+Version: 4.3.0
 
-PooleShield v4.2 adds a metadata-only Results UI for reviewing scan output without opening scanned files.
+PooleShield v4.3 adds a metadata-only Results UI for reviewing scan output without opening scanned files.
 
 ## What changed
 
@@ -15,7 +15,7 @@ results.load
 New operator command:
 
 ```powershell
-python .\pooleshield_operator.py results-load --output-dir .\out\file_av_desktop_v4_2
+python .\pooleshield_operator.py results-load --output-dir .\out\file_av_desktop_v4_3
 ```
 
 Desktop UI additions:
@@ -47,7 +47,7 @@ It does not read raw scanned file contents, execute scanned files, delete files,
 
 ```powershell
 python .\pooleshield_operator.py results-load `
-  --output-dir .\out\file_av_desktop_v4_2 `
+  --output-dir .\out\file_av_desktop_v4_3 `
   --decision ALLOW_LOG `
   --label script `
   --limit 25 `

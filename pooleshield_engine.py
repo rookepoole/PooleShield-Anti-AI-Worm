@@ -39,7 +39,7 @@ from scan_history import (
 )
 from scan_profiles import ScanProfileError, get_scan_profile, profile_catalog
 
-VERSION = "4.2.0"
+VERSION = "4.3.0"
 ENGINE_API_VERSION = "1"
 
 SUPPORTED_OPERATIONS = (
@@ -55,6 +55,8 @@ SUPPORTED_OPERATIONS = (
     "rule_pack.validate",
     "file_av.scan_baseline",
     "results.load",
+    "baseline.load",
+    "baseline.diff",
 )
 
 
@@ -424,7 +426,7 @@ def results_load(
     text: Optional[str] = None,
     limit: int = 500,
 ) -> Dict[str, Any]:
-    """Load metadata-only scan results for the v4.2 Results UI.
+    """Load metadata-only scan results for the v4.3 Results UI.
 
     This reads PooleShield output JSON reports only. It does not open scanned
     files, execute anything, modify the scanned corpus, or include matched file
@@ -489,6 +491,164 @@ def results_load(
     return _with_engine_metadata(summary, "results.load")
 
 
+
+def _load_baseline_json(baseline: str) -> tuple[Path, Dict[str, Any]]:
+    path = Path(baseline).expanduser()
+    if not path.exists():
+        raise FileNotFoundError(f"trusted baseline not found: {path}")
+    data = _read_json_if_exists(path)
+    if not isinstance(data, dict):
+        raise ValueError(f"trusted baseline is not a JSON object: {path}")
+    if not isinstance(data.get("entries"), list):
+        raise ValueError(f"trusted baseline has no entries list: {path}")
+    return path, data
+
+
+def _normalize_baseline_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
+    labels = _as_list(entry.get("labels"))
+    hints = _as_list(entry.get("path_hints"))
+    digest = str(entry.get("sha256") or "").strip().lower()
+    return {
+        "sha256": digest,
+        "sha256_prefix": digest[:16],
+        "trusted_decision": str(entry.get("trusted_decision") or ""),
+        "source_effective_decision": str(entry.get("source_effective_decision") or ""),
+        "kind": str(entry.get("kind") or ""),
+        "size_bytes": entry.get("size_bytes", ""),
+        "labels": labels,
+        "path_hints": hints,
+        "first_path_hint": hints[0] if hints else "",
+        "first_seen": str(entry.get("first_seen") or ""),
+        "last_seen": str(entry.get("last_seen") or ""),
+        "review_key": str(entry.get("review_key") or ""),
+        "review_notes": str(entry.get("review_notes") or ""),
+    }
+
+
+def _matches_baseline_filters(row: Dict[str, Any], decision: Optional[str], kind: Optional[str], text: Optional[str]) -> bool:
+    if decision and decision != "ANY" and row.get("trusted_decision") != decision:
+        return False
+    if kind:
+        needle = kind.lower()
+        if needle not in str(row.get("kind", "")).lower():
+            return False
+    if text:
+        needle = text.lower()
+        haystack = " ".join([
+            str(row.get("sha256", "")),
+            str(row.get("trusted_decision", "")),
+            str(row.get("source_effective_decision", "")),
+            str(row.get("kind", "")),
+            " ".join(row.get("labels", [])),
+            " ".join(row.get("path_hints", [])),
+            str(row.get("review_notes", "")),
+        ]).lower()
+        if needle not in haystack:
+            return False
+    return True
+
+
+def baseline_load(
+    baseline: str,
+    decision: Optional[str] = None,
+    kind: Optional[str] = None,
+    text: Optional[str] = None,
+    limit: int = 500,
+) -> Dict[str, Any]:
+    """Load a local trusted-hash baseline as metadata-only rows for v4.3.
+
+    This reads only the local trusted baseline JSON. It does not open, execute,
+    modify, delete, quarantine, or trust any scanned files.
+    """
+    path, data = _load_baseline_json(baseline)
+    rows = [_normalize_baseline_entry(x) for x in data.get("entries", []) if isinstance(x, dict)]
+    rows.sort(key=lambda item: (str(item.get("kind", "")), str(item.get("first_path_hint", "")), str(item.get("sha256", ""))))
+    filtered = [row for row in rows if _matches_baseline_filters(row, decision, kind, text)]
+    try:
+        safe_limit = max(1, min(int(limit), 5000))
+    except Exception:
+        safe_limit = 500
+    decisions: Dict[str, int] = {}
+    kinds: Dict[str, int] = {}
+    for row in rows:
+        decisions[row.get("trusted_decision") or "UNKNOWN"] = decisions.get(row.get("trusted_decision") or "UNKNOWN", 0) + 1
+        kinds[row.get("kind") or "UNKNOWN"] = kinds.get(row.get("kind") or "UNKNOWN", 0) + 1
+    summary = data.get("summary", {}) if isinstance(data.get("summary"), dict) else {}
+    result = {
+        "tool": "PooleShield baseline loader",
+        "version": VERSION,
+        "mode": "baseline-load",
+        "baseline_path": str(path),
+        "baseline_version": data.get("version"),
+        "generated_at": data.get("generated_at"),
+        "summary": summary,
+        "filters": {"decision": decision or "ANY", "kind": kind or "", "text": text or "", "limit": safe_limit},
+        "total_entries_available": len(rows),
+        "entries_after_filter": len(filtered),
+        "entries_returned": min(len(filtered), safe_limit),
+        "by_trusted_decision": decisions,
+        "by_kind": kinds,
+        "entries": filtered[:safe_limit],
+        "safety_boundary": {
+            "metadata_only": True,
+            "raw_scanned_file_contents_loaded": False,
+            "executed_files": False,
+            "modified_files": False,
+            "deleted_files": False,
+            "quarantined_files": False,
+            "baseline_file_modified": False,
+        },
+    }
+    return _with_engine_metadata(result, "baseline.load")
+
+
+def baseline_diff(baseline_a: str, baseline_b: str, limit: int = 500) -> Dict[str, Any]:
+    """Compare two local trusted baselines by SHA256 without mutating either file."""
+    path_a, data_a = _load_baseline_json(baseline_a)
+    path_b, data_b = _load_baseline_json(baseline_b)
+    rows_a = [_normalize_baseline_entry(x) for x in data_a.get("entries", []) if isinstance(x, dict)]
+    rows_b = [_normalize_baseline_entry(x) for x in data_b.get("entries", []) if isinstance(x, dict)]
+    map_a = {row["sha256"]: row for row in rows_a if row.get("sha256")}
+    map_b = {row["sha256"]: row for row in rows_b if row.get("sha256")}
+    added_keys = sorted(set(map_b) - set(map_a))
+    removed_keys = sorted(set(map_a) - set(map_b))
+    common_keys = sorted(set(map_a) & set(map_b))
+    changed_keys = [k for k in common_keys if (map_a[k].get("trusted_decision"), map_a[k].get("kind"), map_a[k].get("labels")) != (map_b[k].get("trusted_decision"), map_b[k].get("kind"), map_b[k].get("labels"))]
+    try:
+        safe_limit = max(1, min(int(limit), 5000))
+    except Exception:
+        safe_limit = 500
+    result = {
+        "tool": "PooleShield baseline diff",
+        "version": VERSION,
+        "mode": "baseline-diff",
+        "baseline_a": str(path_a),
+        "baseline_b": str(path_b),
+        "counts": {
+            "entries_a": len(rows_a),
+            "entries_b": len(rows_b),
+            "common": len(common_keys),
+            "added_in_b": len(added_keys),
+            "removed_from_b": len(removed_keys),
+            "metadata_changed": len(changed_keys),
+        },
+        "limit": safe_limit,
+        "added_in_b": [map_b[k] for k in added_keys[:safe_limit]],
+        "removed_from_b": [map_a[k] for k in removed_keys[:safe_limit]],
+        "metadata_changed": [{"sha256": k, "a": map_a[k], "b": map_b[k]} for k in changed_keys[:safe_limit]],
+        "safety_boundary": {
+            "metadata_only": True,
+            "raw_scanned_file_contents_loaded": False,
+            "executed_files": False,
+            "modified_files": False,
+            "deleted_files": False,
+            "quarantined_files": False,
+            "baseline_files_modified": False,
+        },
+    }
+    return _with_engine_metadata(result, "baseline.diff")
+
+
 def _require_params(request: Dict[str, Any]) -> Dict[str, Any]:
     params = request.get("params", {})
     if not isinstance(params, dict):
@@ -531,6 +691,8 @@ def dispatch(request: Dict[str, Any]) -> Dict[str, Any]:
         "rule_pack.validate": rule_pack_validate,
         "file_av.scan_baseline": file_av_scan_baseline,
         "results.load": results_load,
+        "baseline.load": baseline_load,
+        "baseline.diff": baseline_diff,
     }
     try:
         result = handlers[operation](**params)

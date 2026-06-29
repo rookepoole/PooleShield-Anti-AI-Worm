@@ -1,31 +1,30 @@
 {
   "tool": "PooleShield",
-  "version": "4.2.0",
+  "version": "4.3.0",
   "release_type": "continuity_handoff",
   "last_updated": "2026-06-28",
   "mission": "Privacy-first, defensive, non-executing second-opinion scanner for suspicious files, archives, scripts, AI-agent logs, exported data bundles, and local workflow artifacts.",
-  "current_release": "v4.2",
-  "current_milestone": "Results UI for local operator review",
+  "current_release": "v4.3",
+  "current_milestone": "Baseline Manager UI for local trusted baseline review",
   "safety_boundary": {
     "allowed": [
       "read local files for static scanning",
-      "score risk",
-      "produce metadata/report outputs",
-      "produce review queues",
+      "write metadata/report outputs",
       "apply human review ledgers",
       "apply local trusted baselines as ALLOW_LOG",
       "write local metadata-only scan history",
       "load metadata-only scan results for UI review",
+      "load metadata-only trusted baseline entries for UI review",
+      "compare two local baseline JSON files by SHA256",
       "bundle privacy-safe results"
     ],
     "not_allowed": [
       "execute scanned files",
       "delete scanned files",
-      "automatically quarantine scanned files",
+      "automatic quarantine",
       "kill processes",
       "install hooks or drivers",
       "upload raw scanned contents by default",
-      "commit local baselines/config/history/output bundles to GitHub",
       "publish private Poole Math / Poole Manifold / Poole Defect Calculus IP"
     ]
   },
@@ -41,33 +40,25 @@
     "history.show",
     "rule_pack.validate",
     "file_av.scan_baseline",
-    "results.load"
+    "results.load",
+    "baseline.load",
+    "baseline.diff"
   ],
-  "new_files_v4_0": [
-    "pooleshield_engine.py",
-    "ENGINE_API_GUIDE.md",
-    "tests/test_engine_api.py"
-  ],
-  "new_files_v4_1": [
-    "pooleshield_desktop.py",
-    "DESKTOP_UI_GUIDE.md",
-    "requirements-ui.txt",
-    "tests/test_desktop_ui.py"
-  ],
-  "new_files_v4_2": [
-    "RESULTS_UI_GUIDE.md",
-    "updated pooleshield_engine.py results.load",
-    "updated pooleshield_desktop.py Results tab",
+  "new_files_v4_3": [
+    "BASELINE_MANAGER_UI_GUIDE.md",
+    "updated pooleshield_engine.py baseline.load/baseline.diff",
+    "updated pooleshield_desktop.py Baseline tab",
     "updated tests/test_engine_api.py",
     "updated tests/test_desktop_ui.py"
   ],
-  "new_commands_v4_2": [
-    "results-load",
+  "new_commands_v4_3": [
+    "baseline-load",
+    "baseline-diff",
     "desktop",
     "desktop --status"
   ],
   "validated_prior_release": {
-    "latest_validated_release": "v4.1",
+    "latest_validated_release": "v4.2",
     "final_verdict": "CLEAN_AFTER_POLICY",
     "require_approval": 0,
     "block": 0,
@@ -75,5 +66,5 @@
     "history_record_scan_id": 1,
     "bundle_hash_mismatches": 0
   },
-  "current_next_best_move": "Test v4.2 locally with pytest, repo safety check, privacy leak check, desktop --status, results-load, then run a baseline-aware scan through the UI or CLI. Upload the generated privacy bundle before pushing v4.2."
+  "current_next_best_move": "Test v4.3 locally with pytest, repo safety check, privacy leak check, desktop --status, baseline-load, baseline-diff, and a baseline-aware scan. Upload the generated privacy bundle before pushing v4.3."
 }

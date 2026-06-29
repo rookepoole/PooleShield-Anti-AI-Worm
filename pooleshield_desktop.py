@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""PooleShield v4.2 desktop UI prototype.
+"""PooleShield v4.3 desktop UI prototype.
 
 Defensive purpose:
-  Provide a local desktop dashboard and results-review UI for the PooleShield Engine API.
+  Provide a local desktop dashboard, results-review UI, and baseline-manager UI for the PooleShield Engine API.
   The UI calls local engine functions and writes local metadata/report outputs only.
 
 Safety boundary:
@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Sequence
 
 from pooleshield_engine import VERSION as ENGINE_VERSION, dispatch
 
-VERSION = "4.2.0"
+VERSION = "4.3.0"
 
 try:  # PySide6 is optional so core tests and CLI usage stay dependency-light.
     from PySide6.QtCore import QObject, QThread, Signal, Qt  # type: ignore
@@ -129,6 +129,28 @@ def build_results_load_request(
     return {"operation": "results.load", "params": params}
 
 
+def build_baseline_load_request(
+    baseline: str,
+    *,
+    decision: str = "ANY",
+    kind: str = "",
+    text: str = "",
+    limit: int = 500,
+) -> Dict[str, Any]:
+    params: Dict[str, Any] = {"baseline": baseline, "limit": limit}
+    if decision and decision != "ANY":
+        params["decision"] = decision
+    if kind:
+        params["kind"] = kind
+    if text:
+        params["text"] = text
+    return {"operation": "baseline.load", "params": params}
+
+
+def build_baseline_diff_request(baseline_a: str, baseline_b: str, *, limit: int = 500) -> Dict[str, Any]:
+    return {"operation": "baseline.diff", "params": {"baseline_a": baseline_a, "baseline_b": baseline_b, "limit": limit}}
+
+
 def build_file_av_scan_request(
     paths: Sequence[str],
     *,
@@ -165,7 +187,7 @@ def build_file_av_scan_request(
 
 
 def summarize_results_response(response: Dict[str, Any]) -> str:
-    """Summarize metadata-only loaded results for the v4.2 results tab."""
+    """Summarize metadata-only loaded results for the v4.3 results tab."""
     if not response.get("ok"):
         return f"ERROR [{response.get('error_type')}]: {response.get('error')}"
     result = response.get("result", {})
@@ -179,6 +201,28 @@ def summarize_results_response(response: Dict[str, Any]) -> str:
             pieces.append(f"{key}={result.get(key)}")
     if result.get("bundle_path"):
         pieces.append(f"bundle={result.get('bundle_path')}")
+    return " | ".join(pieces)
+
+
+def summarize_baseline_response(response: Dict[str, Any]) -> str:
+    """Summarize metadata-only baseline manager responses."""
+    if not response.get("ok"):
+        return f"ERROR [{response.get('error_type')}]: {response.get('error')}"
+    result = response.get("result", {})
+    if not isinstance(result, dict):
+        return "OK"
+    pieces = ["OK"]
+    mode = result.get("mode")
+    if mode:
+        pieces.append(str(mode))
+    for key in ("total_entries_available", "entries_after_filter", "entries_returned"):
+        if key in result:
+            pieces.append(f"{key}={result.get(key)}")
+    counts = result.get("counts")
+    if isinstance(counts, dict):
+        pieces.append("diff=" + ",".join(f"{k}={v}" for k, v in counts.items()))
+    if result.get("baseline_path"):
+        pieces.append(f"baseline={result.get('baseline_path')}")
     return " | ".join(pieces)
 
 
@@ -237,10 +281,13 @@ if HAS_QT:
             self.setCentralWidget(self.tabs)
             self._last_results_response: Dict[str, Any] = {}
             self._last_results_rows: List[Dict[str, Any]] = []
+            self._last_baseline_response: Dict[str, Any] = {}
+            self._last_baseline_rows: List[Dict[str, Any]] = []
 
             self._build_dashboard_tab()
             self._build_scan_tab()
             self._build_results_tab()
+            self._build_baseline_tab()
             self._build_history_tab()
             self._build_about_tab()
 
@@ -301,7 +348,7 @@ if HAS_QT:
             self.target_path = QLineEdit(str(Path.home() / "Desktop" / "PooleShieldRealScanSmall"))
             self.baseline_path = QLineEdit("")
             self.rule_pack_path = QLineEdit("examples/rule_packs/file_av_rules.default.json")
-            self.output_dir = QLineEdit("out/file_av_desktop_v4_2")
+            self.output_dir = QLineEdit("out/file_av_desktop_v4_3")
             self.history_db = QLineEdit("local_history/pooleshield_scan_history.sqlite")
             self.profile_name = QComboBox()
             self.profile_name.addItems(["standard", "developer", "strict", "quick", "deep", "archive-heavy", "privacy-sensitive"])
@@ -348,7 +395,7 @@ if HAS_QT:
             layout = QVBoxLayout(tab)
             controls = QGroupBox("Results table and filters")
             row = QHBoxLayout(controls)
-            self.results_output_dir = QLineEdit("out/file_av_desktop_v4_2")
+            self.results_output_dir = QLineEdit("out/file_av_desktop_v4_3")
             self.results_decision = QComboBox()
             self.results_decision.addItems(["ANY", "ALLOW", "ALLOW_LOG", "REQUIRE_APPROVAL", "BLOCK", "QUARANTINE"])
             self.results_label_filter = QLineEdit("")
@@ -382,6 +429,62 @@ if HAS_QT:
             copy_bundle_btn.clicked.connect(self._copy_bundle_path)
             self.results_table.itemSelectionChanged.connect(self._show_selected_result_detail)
             self.tabs.addTab(tab, "Results")
+
+        def _build_baseline_tab(self) -> None:
+            tab = QWidget()
+            layout = QVBoxLayout(tab)
+            controls = QGroupBox("Trusted baseline manager")
+            form = QFormLayout(controls)
+            self.baseline_manager_path = QLineEdit("")
+            self.baseline_manager_decision = QComboBox()
+            self.baseline_manager_decision.addItems(["ANY", "ALLOW", "ALLOW_LOG"])
+            self.baseline_manager_kind = QLineEdit("")
+            self.baseline_manager_kind.setPlaceholderText("kind contains")
+            self.baseline_manager_text = QLineEdit("")
+            self.baseline_manager_text.setPlaceholderText("sha/path/label/notes contains")
+            form.addRow("Baseline JSON", self._make_path_row(self.baseline_manager_path, "Browse", "file"))
+            form.addRow("Decision", self.baseline_manager_decision)
+            form.addRow("Kind filter", self.baseline_manager_kind)
+            form.addRow("Search", self.baseline_manager_text)
+            layout.addWidget(controls)
+
+            row = QHBoxLayout()
+            load_btn = QPushButton("Load baseline")
+            copy_sha_btn = QPushButton("Copy selected SHA")
+            copy_path_btn = QPushButton("Copy baseline path")
+            row.addWidget(load_btn)
+            row.addWidget(copy_sha_btn)
+            row.addWidget(copy_path_btn)
+            row.addStretch(1)
+            layout.addLayout(row)
+
+            diff_box = QGroupBox("Compare two baselines")
+            diff_row = QHBoxLayout(diff_box)
+            self.baseline_diff_a = QLineEdit("")
+            self.baseline_diff_b = QLineEdit("")
+            diff_btn = QPushButton("Diff")
+            diff_row.addWidget(QLabel("A"))
+            diff_row.addWidget(self.baseline_diff_a, 1)
+            diff_row.addWidget(QLabel("B"))
+            diff_row.addWidget(self.baseline_diff_b, 1)
+            diff_row.addWidget(diff_btn)
+            layout.addWidget(diff_box)
+
+            self.baseline_status = QLabel("Load a local trusted_file_baseline.json. Baseline contents stay local/private.")
+            layout.addWidget(self.baseline_status)
+            self.baseline_table = QTableWidget(0, 6)
+            self.baseline_table.setHorizontalHeaderLabels(["Decision", "Kind", "Size", "SHA prefix", "Labels", "Path hint"])
+            layout.addWidget(self.baseline_table, 2)
+            self.baseline_detail = QPlainTextEdit()
+            self.baseline_detail.setReadOnly(True)
+            layout.addWidget(self.baseline_detail, 1)
+
+            load_btn.clicked.connect(self._load_baseline)
+            copy_sha_btn.clicked.connect(self._copy_selected_baseline_sha)
+            copy_path_btn.clicked.connect(self._copy_baseline_path)
+            diff_btn.clicked.connect(self._diff_baselines)
+            self.baseline_table.itemSelectionChanged.connect(self._show_selected_baseline_detail)
+            self.tabs.addTab(tab, "Baseline")
 
         def _build_history_tab(self) -> None:
             tab = QWidget()
@@ -535,6 +638,88 @@ if HAS_QT:
                 return
             QApplication.clipboard().setText(str(bundle))
             self.results_status.setText(f"Copied bundle path: {bundle}")
+
+        def _load_baseline(self) -> None:
+            baseline = self.baseline_manager_path.text().strip()
+            if not baseline:
+                QMessageBox.warning(self, "Missing baseline", "Choose a trusted_file_baseline.json first.")
+                return
+            request = build_baseline_load_request(
+                baseline,
+                decision=self.baseline_manager_decision.currentText(),
+                kind=self.baseline_manager_kind.text().strip(),
+                text=self.baseline_manager_text.text().strip(),
+                limit=1000,
+            )
+            response = dispatch(request)
+            self._last_baseline_response = response
+            self.baseline_status.setText(summarize_baseline_response(response))
+            self.baseline_detail.setPlainText(_pretty(response))
+            self._fill_baseline_table(response)
+            if response.get("ok"):
+                self.baseline_diff_a.setText(baseline)
+
+        def _fill_baseline_table(self, response: Dict[str, Any]) -> None:
+            self.baseline_table.setRowCount(0)
+            self._last_baseline_rows = []
+            if not response.get("ok"):
+                return
+            result = response.get("result", {})
+            if not isinstance(result, dict):
+                return
+            rows = result.get("entries", [])
+            if not isinstance(rows, list):
+                return
+            self._last_baseline_rows = [dict(row) for row in rows if isinstance(row, dict)]
+            for row_idx, item in enumerate(self._last_baseline_rows):
+                self.baseline_table.insertRow(row_idx)
+                labels = ";".join(str(x) for x in item.get("labels", []))
+                values = [
+                    item.get("trusted_decision", ""),
+                    item.get("kind", ""),
+                    item.get("size_bytes", ""),
+                    item.get("sha256_prefix", ""),
+                    labels,
+                    item.get("first_path_hint", ""),
+                ]
+                for col, value in enumerate(values):
+                    self.baseline_table.setItem(row_idx, col, QTableWidgetItem(str(value)))
+            if self._last_baseline_rows:
+                self.baseline_table.selectRow(0)
+
+        def _show_selected_baseline_detail(self) -> None:
+            row = self.baseline_table.currentRow()
+            if row < 0 or row >= len(self._last_baseline_rows):
+                return
+            self.baseline_detail.setPlainText(_pretty(self._last_baseline_rows[row]))
+
+        def _copy_selected_baseline_sha(self) -> None:
+            row = self.baseline_table.currentRow()
+            if row < 0 or row >= len(self._last_baseline_rows):
+                QMessageBox.information(self, "No row selected", "Select a baseline entry first.")
+                return
+            sha = str(self._last_baseline_rows[row].get("sha256", ""))
+            QApplication.clipboard().setText(sha)
+            self.baseline_status.setText(f"Copied SHA: {sha[:16]}...")
+
+        def _copy_baseline_path(self) -> None:
+            baseline = self.baseline_manager_path.text().strip()
+            if not baseline:
+                QMessageBox.information(self, "No baseline path", "Choose a baseline first.")
+                return
+            QApplication.clipboard().setText(baseline)
+            self.baseline_status.setText(f"Copied baseline path: {baseline}")
+
+        def _diff_baselines(self) -> None:
+            a = self.baseline_diff_a.text().strip()
+            b = self.baseline_diff_b.text().strip()
+            if not a or not b:
+                QMessageBox.warning(self, "Missing baseline", "Enter both baseline A and baseline B paths.")
+                return
+            response = dispatch(build_baseline_diff_request(a, b, limit=500))
+            self._last_baseline_response = response
+            self.baseline_status.setText(summarize_baseline_response(response))
+            self.baseline_detail.setPlainText(_pretty(response))
 
         def _refresh_history(self) -> None:
             request = build_history_list_request(

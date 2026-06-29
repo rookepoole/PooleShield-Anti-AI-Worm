@@ -1,8 +1,8 @@
 # PooleShield Engine API Guide
 
-Version: 4.2.0
+Version: 4.3.0
 
-PooleShield v4.0 introduced a small Python engine layer so the CLI, desktop UI, and local process bridge can call the same backend functions. v4.2 extends that layer with metadata-only result loading for the Results UI.
+PooleShield v4.0 introduced a small Python engine layer so the CLI, desktop UI, and local process bridge can call the same backend functions. v4.3 extends that layer with metadata-only result loading for the Results UI.
 
 ## Safety boundary
 
@@ -24,7 +24,7 @@ summary = file_av_scan_baseline(
 )
 
 results = results_load(
-    output_dir=r".\out\file_av_desktop_v4_2",
+    output_dir=r".\out\file_av_desktop_v4_3",
     decision="ALLOW_LOG",
     limit=25,
 )
@@ -49,7 +49,7 @@ Response shape:
 {
   "ok": true,
   "engine": "PooleShield Engine API",
-  "engine_version": "4.2.0",
+  "engine_version": "4.3.0",
   "engine_api_version": "1",
   "operation": "profile.show",
   "result": {}
@@ -62,7 +62,7 @@ Errors are structured, not tracebacks:
 {
   "ok": false,
   "engine": "PooleShield Engine API",
-  "engine_version": "4.2.0",
+  "engine_version": "4.3.0",
   "engine_api_version": "1",
   "operation": "unknown.operation",
   "error_type": "unsupported_operation",
@@ -77,7 +77,7 @@ Errors are structured, not tracebacks:
 {
   "operation": "results.load",
   "params": {
-    "output_dir": ".\\out\\file_av_desktop_v4_2",
+    "output_dir": ".\\out\\file_av_desktop_v4_3",
     "decision": "ALLOW_LOG",
     "limit": 25
   }
@@ -90,7 +90,7 @@ python .\pooleshield_operator.py engine-dispatch --request .\engine_request.json
 You can also use the convenience command:
 
 ```powershell
-python .\pooleshield_operator.py results-load --output-dir .\out\file_av_desktop_v4_2 --decision ALLOW_LOG --limit 25
+python .\pooleshield_operator.py results-load --output-dir .\out\file_av_desktop_v4_3 --decision ALLOW_LOG --limit 25
 ```
 
 ## Supported operations
@@ -108,8 +108,15 @@ history.show
 rule_pack.validate
 file_av.scan_baseline
 results.load
+baseline.load
+baseline.diff
 ```
 
 ## UI-ready direction
 
 The CLI remains available, but the current config/profile/history/baseline-scan/results workflow is available behind `pooleshield_engine.py`. A desktop app can now call engine functions directly or send JSON requests to the `engine-dispatch` bridge.
+
+
+## v4.3 Baseline Manager operations
+
+`baseline.load` reads a local trusted baseline as metadata-only rows for the Baseline tab. `baseline.diff` compares two baseline JSON files by SHA256. Both operations are local-only and do not modify scanned files or baseline files.
