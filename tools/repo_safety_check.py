@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
 
-VERSION = "4.1.0"
+VERSION = "4.2.0"
 
 FORBIDDEN_DIR_NAMES = {
     "out",
@@ -47,6 +47,9 @@ FORBIDDEN_FILE_NAMES = {
     ".pooleshield_config.json",
     "pooleshield_scan_history.sqlite",
     "pooleshield_history.sqlite",
+    "engine_request.json",
+    "engine_response.json",
+    "results_response.json",
 }
 
 FORBIDDEN_SUFFIXES = {

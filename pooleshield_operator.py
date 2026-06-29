@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v4.1.0 operator CLI.
+PooleShield v4.2.0 operator CLI.
 
 Defensive purpose:
   Provide a real operator workflow for scanning folders/log exports, producing
@@ -47,7 +47,7 @@ from scan_history import (
 )
 import pooleshield_engine as engine
 
-VERSION = "4.1.0"
+VERSION = "4.2.0"
 
 
 def policy_path_for(profile: str) -> str:
@@ -780,7 +780,7 @@ def run_dat_batch(
     return summary
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="PooleShield v4.1 real operator workflow and desktop prototype")
+    parser = argparse.ArgumentParser(description="PooleShield v4.2 real operator workflow and desktop prototype")
     sub = parser.add_subparsers(dest="command", required=True)
 
     config_init = sub.add_parser("config-init", help="Create a local PooleShield config JSON")
@@ -1104,7 +1104,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     engine_cmd.add_argument("--request", required=True, help="JSON request file with operation and params")
     engine_cmd.add_argument("--output", default=None, help="Optional path to write the JSON response")
 
-    desktop_cmd = sub.add_parser("desktop", help="Launch the v4.1 local desktop UI prototype")
+    results_load_cmd = sub.add_parser("results-load", help="Load metadata-only scan results for the v4.2 Results UI")
+    results_load_cmd.add_argument("--output-dir", required=True, help="Existing PooleShield output folder")
+    results_load_cmd.add_argument("--decision", default="ANY", help="Optional effective decision filter")
+    results_load_cmd.add_argument("--label", default="", help="Optional label substring filter")
+    results_load_cmd.add_argument("--text", default="", help="Optional path/hash/label/reason substring filter")
+    results_load_cmd.add_argument("--limit", type=int, default=500, help="Maximum metadata rows to return")
+    results_load_cmd.add_argument("--output", default=None, help="Optional path to write JSON response")
+
+    desktop_cmd = sub.add_parser("desktop", help="Launch the v4.2 local desktop UI prototype")
     desktop_cmd.add_argument("--status", action="store_true", help="Print desktop dependency status instead of launching UI")
 
     bundle_cmd = sub.add_parser("bundle", help="Bundle an existing PooleShield output folder into one ZIP for upload/sharing")
@@ -1174,6 +1182,22 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if args.command == "engine-dispatch":
         summary = engine.dispatch_file(args.request, output_path=args.output)
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0 if summary.get("ok") else 2
+
+    if args.command == "results-load":
+        summary = engine.dispatch({
+            "operation": "results.load",
+            "params": {
+                "output_dir": args.output_dir,
+                "decision": args.decision,
+                "label": args.label,
+                "text": args.text,
+                "limit": args.limit,
+            },
+        })
+        if args.output:
+            write_json(args.output, summary)
         print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0 if summary.get("ok") else 2
 

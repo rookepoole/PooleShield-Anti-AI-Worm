@@ -12,6 +12,7 @@ from pooleshield_engine import (
     dispatch,
     file_av_scan_baseline,
     profile_list,
+    results_load,
     profile_show,
 )
 from scan_history import list_history
@@ -88,3 +89,62 @@ def test_operator_engine_dispatch_cli(tmp_path: Path):
     assert data["ok"] is True
     assert data["operation"] == "profile.show"
     assert data["result"]["profile"]["name"] == "developer"
+
+
+def test_engine_results_load_metadata_only(tmp_path: Path):
+    root, baseline_path = _make_baseline(tmp_path)
+    out = tmp_path / "engine_results"
+    summary = file_av_scan_baseline(
+        paths=[str(root)],
+        baseline=str(baseline_path),
+        output_dir=str(out),
+        clean_output=True,
+        bundle_output=True,
+        privacy_bundle=True,
+    )
+    assert summary["final_verdict"] == "CLEAN_AFTER_POLICY"
+    loaded = results_load(str(out), decision="ALLOW_LOG", limit=10)
+    assert loaded["engine_version"] == VERSION
+    assert loaded["operation"] == "results.load"
+    assert loaded["safety_boundary"]["metadata_only"] is True
+    assert loaded["total_items_available"] >= loaded["items_returned"]
+    assert loaded["items_returned"] > 0
+    assert all(item["effective_decision"] == "ALLOW_LOG" for item in loaded["items"])
+    first = loaded["items"][0]
+    assert "display_path" in first
+    assert "sha256" in first
+    assert "reasons" in first
+
+
+def test_operator_results_load_cli(tmp_path: Path):
+    root, baseline_path = _make_baseline(tmp_path)
+    out = tmp_path / "operator_results"
+    file_av_scan_baseline(
+        paths=[str(root)],
+        baseline=str(baseline_path),
+        output_dir=str(out),
+        clean_output=True,
+        bundle_output=True,
+        privacy_bundle=True,
+    )
+    repo = Path(__file__).resolve().parents[1]
+    response = tmp_path / "results_response.json"
+    cmd = [
+        sys.executable,
+        str(repo / "pooleshield_operator.py"),
+        "results-load",
+        "--output-dir",
+        str(out),
+        "--decision",
+        "ALLOW_LOG",
+        "--limit",
+        "5",
+        "--output",
+        str(response),
+    ]
+    result = subprocess.run(cmd, cwd=repo, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60)
+    assert result.returncode == 0, result.stderr
+    data = json.loads(response.read_text(encoding="utf-8"))
+    assert data["ok"] is True
+    assert data["operation"] == "results.load"
+    assert data["result"]["items_returned"] <= 5

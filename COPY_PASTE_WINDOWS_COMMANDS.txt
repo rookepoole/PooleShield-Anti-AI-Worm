@@ -1,4 +1,4 @@
-PooleShield v4.1 local test commands
+PooleShield v4.2 local test commands
 =====================================
 
 1) Extract the package, then open PowerShell in the package folder.
@@ -27,8 +27,16 @@ python .\pooleshield_operator.py file-av-scan-baseline `
   --bundle-output `
   --privacy-bundle
 
-6) Upload only the generated privacy bundle, not the package ZIP:
+6) Verify metadata-only result loading:
 
-out\file_av_desktop_v4_1\pooleshield_results_bundle.zip
+python .\pooleshield_operator.py results-load `
+  --output-dir .\out\file_av_desktop_v4_2 `
+  --decision ALLOW_LOG `
+  --limit 25 `
+  --output .\results_response.json
 
-Never commit local config, local baselines, local history DBs, out folders, or result bundles.
+7) Upload only the generated privacy bundle, not the package ZIP:
+
+out\file_av_desktop_v4_2\pooleshield_results_bundle.zip
+
+Never commit local config, local baselines, local history DBs, out folders, result bundles, or results_response.json.

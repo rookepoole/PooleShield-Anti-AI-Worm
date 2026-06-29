@@ -1,11 +1,11 @@
 # Next Best Move
 
-Test PooleShield v4.1 locally and verify the desktop UI prototype path.
+Test PooleShield v4.2 locally and verify the Results UI path.
 
 ```powershell
 python -m pytest -q
-python .	oolsepo_safety_check.py --root .
-python .	ools\privacy_leak_check.py --root .
+python .\tools\repo_safety_check.py --root .
+python .\tools\privacy_leak_check.py --root .
 python .\pooleshield_operator.py desktop --status
 ```
 
@@ -16,7 +16,7 @@ python -m pip install PySide6
 python .\pooleshield_operator.py desktop
 ```
 
-Run a baseline-aware scan either from the UI or from the CLI. If using the CLI for a reproducible v4.1 bundle:
+Run a baseline-aware scan either from the UI or from the CLI. If using the CLI for a reproducible v4.2 bundle:
 
 ```powershell
 python .\pooleshield_operator.py file-av-scan-baseline `
@@ -27,10 +27,20 @@ python .\pooleshield_operator.py file-av-scan-baseline `
   --privacy-bundle
 ```
 
+Verify the metadata-only Results loader:
+
+```powershell
+python .\pooleshield_operator.py results-load `
+  --output-dir .\out\file_av_desktop_v4_2 `
+  --decision ALLOW_LOG `
+  --limit 25 `
+  --output .\results_response.json
+```
+
 Upload only the generated privacy bundle:
 
 ```text
-outile_av_desktop_v4_1\pooleshield_results_bundle.zip
+out\file_av_desktop_v4_2\pooleshield_results_bundle.zip
 ```
 
-If the bundle verifies clean, push v4.1. After v4.1, continue toward v4.2 Results UI: sortable results table, filtering, detail panel, and privacy-bundle export button.
+If the bundle verifies clean, push v4.2. After v4.2, continue to v4.3 Baseline Manager UI.

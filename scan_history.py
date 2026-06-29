@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-VERSION = "4.1.0"
+VERSION = "4.2.0"
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS scans (

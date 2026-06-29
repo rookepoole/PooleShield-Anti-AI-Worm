@@ -26,3 +26,6 @@ local_history/
 *.sqlite3
 *.db
 pooleshield_scan_history.*
+engine_request.json
+engine_response.json
+results_response.json

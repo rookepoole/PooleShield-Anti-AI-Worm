@@ -11,7 +11,7 @@ This workflow is metadata-only. It does not execute, delete, quarantine, restore
 ## Build a review ledger
 
 ```powershell
-python .\pooleshield_operator.py file-av-review --output-dir .\outile_av_real_small_dev --bundle-output --privacy-bundle
+python .\pooleshield_operator.py file-av-review --output-dir .\out\file_av_real_small_dev --bundle-output --privacy-bundle
 ```
 
 Edit:
@@ -39,7 +39,7 @@ Recommended use:
 ## Apply the ledger
 
 ```powershell
-python .\pooleshield_operator.py file-av-apply-ledger --output-dir .\outile_av_real_small_dev --ledger .\outile_av_real_small_devile_av_review_ledger_template.csv --bundle-output --privacy-bundle
+python .\pooleshield_operator.py file-av-apply-ledger --output-dir .\out\file_av_real_small_dev --ledger .\out\file_av_real_small_dev\file_av_review_ledger_template.csv --bundle-output --privacy-bundle
 ```
 
 Output files:

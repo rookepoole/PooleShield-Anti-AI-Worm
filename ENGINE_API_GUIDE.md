@@ -1,8 +1,8 @@
 # PooleShield Engine API Guide
 
-Version: 4.1.0
+Version: 4.2.0
 
-PooleShield v4.0 introduces a small Python engine layer so the CLI, future desktop UI, and local process bridge can call the same backend functions.
+PooleShield v4.0 introduced a small Python engine layer so the CLI, desktop UI, and local process bridge can call the same backend functions. v4.2 extends that layer with metadata-only result loading for the Results UI.
 
 ## Safety boundary
 
@@ -11,7 +11,7 @@ The Engine API is still defensive and read-only by default. It does not execute 
 ## Python API
 
 ```python
-from pooleshield_engine import profile_show, file_av_scan_baseline
+from pooleshield_engine import profile_show, file_av_scan_baseline, results_load
 
 profile = profile_show("developer")
 
@@ -21,6 +21,12 @@ summary = file_av_scan_baseline(
     clean_output=True,
     bundle_output=True,
     privacy_bundle=True,
+)
+
+results = results_load(
+    output_dir=r".\out\file_av_desktop_v4_2",
+    decision="ALLOW_LOG",
+    limit=25,
 )
 ```
 
@@ -43,7 +49,7 @@ Response shape:
 {
   "ok": true,
   "engine": "PooleShield Engine API",
-  "engine_version": "4.1.0",
+  "engine_version": "4.2.0",
   "engine_api_version": "1",
   "operation": "profile.show",
   "result": {}
@@ -56,7 +62,7 @@ Errors are structured, not tracebacks:
 {
   "ok": false,
   "engine": "PooleShield Engine API",
-  "engine_version": "4.1.0",
+  "engine_version": "4.2.0",
   "engine_api_version": "1",
   "operation": "unknown.operation",
   "error_type": "unsupported_operation",
@@ -69,14 +75,22 @@ Errors are structured, not tracebacks:
 ```powershell
 @'
 {
-  "operation": "profile.show",
+  "operation": "results.load",
   "params": {
-    "name": "developer"
+    "output_dir": ".\\out\\file_av_desktop_v4_2",
+    "decision": "ALLOW_LOG",
+    "limit": 25
   }
 }
 '@ | Set-Content .\engine_request.json
 
 python .\pooleshield_operator.py engine-dispatch --request .\engine_request.json --output .\engine_response.json
+```
+
+You can also use the convenience command:
+
+```powershell
+python .\pooleshield_operator.py results-load --output-dir .\out\file_av_desktop_v4_2 --decision ALLOW_LOG --limit 25
 ```
 
 ## Supported operations
@@ -93,8 +107,9 @@ history.list
 history.show
 rule_pack.validate
 file_av.scan_baseline
+results.load
 ```
 
 ## UI-ready direction
 
-The CLI remains available, but v4.0 moves the newest config/profile/history/baseline-scan orchestration behind `pooleshield_engine.py`. A desktop app can now call engine functions directly or send JSON requests to the `engine-dispatch` bridge.
+The CLI remains available, but the current config/profile/history/baseline-scan/results workflow is available behind `pooleshield_engine.py`. A desktop app can now call engine functions directly or send JSON requests to the `engine-dispatch` bridge.

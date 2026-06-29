@@ -17,7 +17,7 @@ import json
 import shutil
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Callable, Dict, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from file_av_baseline_scan import run_file_av_scan_with_baseline
 from file_av_rules import validate_rule_pack_file
@@ -39,7 +39,7 @@ from scan_history import (
 )
 from scan_profiles import ScanProfileError, get_scan_profile, profile_catalog
 
-VERSION = "4.1.0"
+VERSION = "4.2.0"
 ENGINE_API_VERSION = "1"
 
 SUPPORTED_OPERATIONS = (
@@ -54,6 +54,7 @@ SUPPORTED_OPERATIONS = (
     "history.show",
     "rule_pack.validate",
     "file_av.scan_baseline",
+    "results.load",
 )
 
 
@@ -323,6 +324,171 @@ def file_av_scan_baseline(
     return _with_engine_metadata(summary, "file_av.scan_baseline")
 
 
+def _read_json_if_exists(path: Path) -> Any:
+    if path.exists():
+        with path.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    return None
+
+
+def _as_list(value: Any) -> List[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(v) for v in value if str(v)]
+    if isinstance(value, str):
+        if ";" in value:
+            return [part.strip() for part in value.split(";") if part.strip()]
+        return [value] if value else []
+    return [str(value)]
+
+
+def _result_items_from_report(data: Any) -> List[Dict[str, Any]]:
+    if isinstance(data, dict):
+        if isinstance(data.get("items"), list):
+            return [dict(x) for x in data["items"] if isinstance(x, dict)]
+        if isinstance(data.get("results"), list):
+            return [dict(x) for x in data["results"] if isinstance(x, dict)]
+    if isinstance(data, list):
+        return [dict(x) for x in data if isinstance(x, dict)]
+    return []
+
+
+def _result_decision(item: Dict[str, Any]) -> str:
+    return str(item.get("effective_decision") or item.get("decision") or item.get("original_decision") or "UNKNOWN")
+
+
+def _result_original_decision(item: Dict[str, Any]) -> str:
+    return str(item.get("original_decision") or item.get("decision") or "UNKNOWN")
+
+
+def _result_risk(item: Dict[str, Any]) -> float:
+    try:
+        return float(item.get("risk_score") or item.get("risk") or 0.0)
+    except Exception:
+        return 0.0
+
+
+def _normalize_result_item(item: Dict[str, Any]) -> Dict[str, Any]:
+    labels = _as_list(item.get("labels"))
+    reasons = _as_list(item.get("reasons") or item.get("reason"))
+    display_path = str(item.get("display_path") or item.get("path") or item.get("source_path") or "")
+    return {
+        "effective_decision": _result_decision(item),
+        "original_decision": _result_original_decision(item),
+        "risk_score": _result_risk(item),
+        "display_path": display_path,
+        "source_path": str(item.get("source_path") or display_path),
+        "sha256": str(item.get("sha256") or ""),
+        "kind": str(item.get("kind") or ""),
+        "size_bytes": item.get("size_bytes", ""),
+        "baseline_status": str(item.get("baseline_status") or ""),
+        "baseline_match_type": str(item.get("baseline_match_type") or ""),
+        "baseline_decision": str(item.get("baseline_decision") or ""),
+        "review_status": str(item.get("review_status") or ""),
+        "archive_parent": str(item.get("archive_parent") or ""),
+        "archive_parent_sha256": str(item.get("archive_parent_sha256") or ""),
+        "magic_type": str(item.get("magic_type") or ""),
+        "entropy": item.get("entropy", ""),
+        "labels": labels,
+        "reasons": reasons,
+    }
+
+
+def _matches_result_filters(row: Dict[str, Any], decision: Optional[str], label: Optional[str], text: Optional[str]) -> bool:
+    if decision and decision != "ANY" and row.get("effective_decision") != decision:
+        return False
+    if label:
+        needle = label.lower()
+        if not any(needle in str(x).lower() for x in row.get("labels", [])):
+            return False
+    if text:
+        needle = text.lower()
+        haystack = " ".join([
+            str(row.get("display_path", "")),
+            str(row.get("sha256", "")),
+            str(row.get("baseline_status", "")),
+            str(row.get("baseline_match_type", "")),
+            " ".join(row.get("labels", [])),
+            " ".join(row.get("reasons", [])),
+        ]).lower()
+        if needle not in haystack:
+            return False
+    return True
+
+
+def results_load(
+    output_dir: str,
+    decision: Optional[str] = None,
+    label: Optional[str] = None,
+    text: Optional[str] = None,
+    limit: int = 500,
+) -> Dict[str, Any]:
+    """Load metadata-only scan results for the v4.2 Results UI.
+
+    This reads PooleShield output JSON reports only. It does not open scanned
+    files, execute anything, modify the scanned corpus, or include matched file
+    contents/snippets.
+    """
+    out = Path(output_dir)
+    if not out.exists():
+        raise FileNotFoundError(f"results output folder not found: {out}")
+
+    report_candidates = [
+        out / "effective_file_av_baseline_decisions.json",
+        out / "effective_file_av_decisions.json",
+        out / "file_av_report.json",
+    ]
+    source_report = next((p for p in report_candidates if p.exists()), None)
+    if source_report is None:
+        raise FileNotFoundError(
+            f"metadata result report not found in {out}. Expected effective_file_av_baseline_decisions.json, effective_file_av_decisions.json, or file_av_report.json."
+        )
+
+    final_summary = _read_json_if_exists(out / "FINAL_SCAN_SUMMARY.json") or {}
+    bundle_manifest = _read_json_if_exists(out / "BUNDLE_MANIFEST.json") or {}
+    data = _read_json_if_exists(source_report)
+    raw_items = _result_items_from_report(data)
+    rows = [_normalize_result_item(item) for item in raw_items]
+    rows.sort(key=lambda item: (item.get("effective_decision") in {"REQUIRE_APPROVAL", "BLOCK", "QUARANTINE"}, item.get("risk_score", 0.0)), reverse=True)
+    filtered = [row for row in rows if _matches_result_filters(row, decision, label, text)]
+    try:
+        safe_limit = max(1, min(int(limit), 5000))
+    except Exception:
+        safe_limit = 500
+
+    summary = {
+        "tool": "PooleShield results loader",
+        "version": VERSION,
+        "mode": "results-load",
+        "output_dir": str(out),
+        "source_report": str(source_report),
+        "final_summary_path": str(out / "FINAL_SCAN_SUMMARY.json") if (out / "FINAL_SCAN_SUMMARY.json").exists() else "",
+        "bundle_path": str(bundle_manifest.get("bundle_path") or ""),
+        "privacy_mode": bool(bundle_manifest.get("privacy_mode", True)) if bundle_manifest else True,
+        "final_verdict": final_summary.get("verdict"),
+        "headline": final_summary.get("headline"),
+        "items_scanned": final_summary.get("items_scanned", len(rows)),
+        "baseline_matches": final_summary.get("baseline_matches"),
+        "actionable_items": final_summary.get("actionable_items"),
+        "by_effective_decision": final_summary.get("by_effective_decision", {}),
+        "filters": {"decision": decision or "ANY", "label": label or "", "text": text or "", "limit": safe_limit},
+        "total_items_available": len(rows),
+        "items_after_filter": len(filtered),
+        "items_returned": min(len(filtered), safe_limit),
+        "items": filtered[:safe_limit],
+        "safety_boundary": {
+            "metadata_only": True,
+            "raw_scanned_file_contents_loaded": False,
+            "executed_files": False,
+            "modified_files": False,
+            "deleted_files": False,
+            "quarantined_files": False,
+        },
+    }
+    return _with_engine_metadata(summary, "results.load")
+
+
 def _require_params(request: Dict[str, Any]) -> Dict[str, Any]:
     params = request.get("params", {})
     if not isinstance(params, dict):
@@ -364,6 +530,7 @@ def dispatch(request: Dict[str, Any]) -> Dict[str, Any]:
         "history.show": history_show,
         "rule_pack.validate": rule_pack_validate,
         "file_av.scan_baseline": file_av_scan_baseline,
+        "results.load": results_load,
     }
     try:
         result = handlers[operation](**params)

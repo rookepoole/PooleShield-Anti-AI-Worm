@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""PooleShield v4.1 desktop UI prototype.
+"""PooleShield v4.2 desktop UI prototype.
 
 Defensive purpose:
-  Provide the first local desktop dashboard for the PooleShield Engine API.
-  The UI calls local engine functions and writes local reports only.
+  Provide a local desktop dashboard and results-review UI for the PooleShield Engine API.
+  The UI calls local engine functions and writes local metadata/report outputs only.
 
 Safety boundary:
   This UI does not execute scanned files, delete files, quarantine files, kill
@@ -16,11 +16,11 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 from pooleshield_engine import VERSION as ENGINE_VERSION, dispatch
 
-VERSION = "4.1.0"
+VERSION = "4.2.0"
 
 try:  # PySide6 is optional so core tests and CLI usage stay dependency-light.
     from PySide6.QtCore import QObject, QThread, Signal, Qt  # type: ignore
@@ -111,6 +111,24 @@ def build_history_list_request(config: Optional[str] = None, history_db: Optiona
     return {"operation": "history.list", "params": params}
 
 
+def build_results_load_request(
+    output_dir: str,
+    *,
+    decision: str = "ANY",
+    label: str = "",
+    text: str = "",
+    limit: int = 500,
+) -> Dict[str, Any]:
+    params: Dict[str, Any] = {"output_dir": output_dir, "limit": limit}
+    if decision and decision != "ANY":
+        params["decision"] = decision
+    if label:
+        params["label"] = label
+    if text:
+        params["text"] = text
+    return {"operation": "results.load", "params": params}
+
+
 def build_file_av_scan_request(
     paths: Sequence[str],
     *,
@@ -144,6 +162,24 @@ def build_file_av_scan_request(
     }
     params.update({k: v for k, v in optional.items() if v})
     return {"operation": "file_av.scan_baseline", "params": params}
+
+
+def summarize_results_response(response: Dict[str, Any]) -> str:
+    """Summarize metadata-only loaded results for the v4.2 results tab."""
+    if not response.get("ok"):
+        return f"ERROR [{response.get('error_type')}]: {response.get('error')}"
+    result = response.get("result", {})
+    if not isinstance(result, dict):
+        return "OK"
+    pieces = ["OK"]
+    if result.get("final_verdict"):
+        pieces.append(f"verdict={result.get('final_verdict')}")
+    for key in ("items_scanned", "total_items_available", "items_after_filter", "items_returned", "baseline_matches", "actionable_items"):
+        if key in result:
+            pieces.append(f"{key}={result.get(key)}")
+    if result.get("bundle_path"):
+        pieces.append(f"bundle={result.get('bundle_path')}")
+    return " | ".join(pieces)
 
 
 def summarize_engine_response(response: Dict[str, Any]) -> str:
@@ -199,8 +235,12 @@ if HAS_QT:
 
             self.tabs = QTabWidget()
             self.setCentralWidget(self.tabs)
+            self._last_results_response: Dict[str, Any] = {}
+            self._last_results_rows: List[Dict[str, Any]] = []
+
             self._build_dashboard_tab()
             self._build_scan_tab()
+            self._build_results_tab()
             self._build_history_tab()
             self._build_about_tab()
 
@@ -261,7 +301,7 @@ if HAS_QT:
             self.target_path = QLineEdit(str(Path.home() / "Desktop" / "PooleShieldRealScanSmall"))
             self.baseline_path = QLineEdit("")
             self.rule_pack_path = QLineEdit("examples/rule_packs/file_av_rules.default.json")
-            self.output_dir = QLineEdit("out/file_av_desktop_v4_1")
+            self.output_dir = QLineEdit("out/file_av_desktop_v4_2")
             self.history_db = QLineEdit("local_history/pooleshield_scan_history.sqlite")
             self.profile_name = QComboBox()
             self.profile_name.addItems(["standard", "developer", "strict", "quick", "deep", "archive-heavy", "privacy-sensitive"])
@@ -302,6 +342,46 @@ if HAS_QT:
             self.scan_btn.clicked.connect(self._start_scan)
             self.validate_btn.clicked.connect(lambda: self._run_sync(build_config_validate_request(self.config_path.text().strip() or None), self.scan_output))
             self.tabs.addTab(tab, "Scan Folder")
+
+        def _build_results_tab(self) -> None:
+            tab = QWidget()
+            layout = QVBoxLayout(tab)
+            controls = QGroupBox("Results table and filters")
+            row = QHBoxLayout(controls)
+            self.results_output_dir = QLineEdit("out/file_av_desktop_v4_2")
+            self.results_decision = QComboBox()
+            self.results_decision.addItems(["ANY", "ALLOW", "ALLOW_LOG", "REQUIRE_APPROVAL", "BLOCK", "QUARANTINE"])
+            self.results_label_filter = QLineEdit("")
+            self.results_label_filter.setPlaceholderText("label contains")
+            self.results_text_filter = QLineEdit("")
+            self.results_text_filter.setPlaceholderText("path/hash/text contains")
+            load_btn = QPushButton("Load results")
+            copy_bundle_btn = QPushButton("Copy bundle path")
+            row.addWidget(QLabel("Output"))
+            row.addWidget(self.results_output_dir, 2)
+            row.addWidget(QLabel("Decision"))
+            row.addWidget(self.results_decision)
+            row.addWidget(QLabel("Label"))
+            row.addWidget(self.results_label_filter)
+            row.addWidget(QLabel("Search"))
+            row.addWidget(self.results_text_filter)
+            row.addWidget(load_btn)
+            row.addWidget(copy_bundle_btn)
+            layout.addWidget(controls)
+
+            self.results_status = QLabel("Load a PooleShield output folder to review metadata-only results.")
+            layout.addWidget(self.results_status)
+            self.results_table = QTableWidget(0, 6)
+            self.results_table.setHorizontalHeaderLabels(["Decision", "Risk", "Baseline", "Kind", "Labels", "Path"])
+            layout.addWidget(self.results_table, 2)
+            self.results_detail = QPlainTextEdit()
+            self.results_detail.setReadOnly(True)
+            layout.addWidget(self.results_detail, 1)
+
+            load_btn.clicked.connect(self._load_results)
+            copy_bundle_btn.clicked.connect(self._copy_bundle_path)
+            self.results_table.itemSelectionChanged.connect(self._show_selected_result_detail)
+            self.tabs.addTab(tab, "Results")
 
         def _build_history_tab(self) -> None:
             tab = QWidget()
@@ -344,7 +424,7 @@ if HAS_QT:
               <li>No drivers or real-time hooks</li>
               <li>No raw private content upload by default</li>
             </ul>
-            <p>This is a prototype UI for local operator testing before packaging as a Windows app.</p>
+            <p>This is a prototype UI with metadata-only results review before packaging as a Windows app.</p>
             """)
             layout.addWidget(text)
             self.tabs.addTab(tab, "About")
@@ -389,6 +469,72 @@ if HAS_QT:
             self.scan_btn.setEnabled(True)
             self.scan_status.setText(summarize_engine_response(response))
             self.scan_output.setPlainText(_pretty(response))
+            if response.get("ok"):
+                result = response.get("result", {})
+                if isinstance(result, dict) and result.get("output_dir"):
+                    self.results_output_dir.setText(str(result.get("output_dir")))
+                    self._load_results(str(result.get("output_dir")))
+
+        def _load_results(self, output_dir: Optional[str] = None) -> None:
+            out = output_dir or self.results_output_dir.text().strip()
+            if not out:
+                QMessageBox.warning(self, "Missing output folder", "Choose or enter a PooleShield output folder first.")
+                return
+            request = build_results_load_request(
+                out,
+                decision=self.results_decision.currentText(),
+                label=self.results_label_filter.text().strip(),
+                text=self.results_text_filter.text().strip(),
+                limit=1000,
+            )
+            response = dispatch(request)
+            self._last_results_response = response
+            self.results_status.setText(summarize_results_response(response))
+            self.results_detail.setPlainText(_pretty(response))
+            self._fill_results_table(response)
+
+        def _fill_results_table(self, response: Dict[str, Any]) -> None:
+            self.results_table.setRowCount(0)
+            self._last_results_rows = []
+            if not response.get("ok"):
+                return
+            result = response.get("result", {})
+            if not isinstance(result, dict):
+                return
+            rows = result.get("items", [])
+            if not isinstance(rows, list):
+                return
+            self._last_results_rows = [dict(row) for row in rows if isinstance(row, dict)]
+            for row_idx, item in enumerate(self._last_results_rows):
+                self.results_table.insertRow(row_idx)
+                labels = ";".join(str(x) for x in item.get("labels", []))
+                values = [
+                    item.get("effective_decision", ""),
+                    item.get("risk_score", ""),
+                    item.get("baseline_status", ""),
+                    item.get("kind", ""),
+                    labels,
+                    item.get("display_path", ""),
+                ]
+                for col, value in enumerate(values):
+                    self.results_table.setItem(row_idx, col, QTableWidgetItem(str(value)))
+            if self._last_results_rows:
+                self.results_table.selectRow(0)
+
+        def _show_selected_result_detail(self) -> None:
+            row = self.results_table.currentRow()
+            if row < 0 or row >= len(self._last_results_rows):
+                return
+            self.results_detail.setPlainText(_pretty(self._last_results_rows[row]))
+
+        def _copy_bundle_path(self) -> None:
+            result = self._last_results_response.get("result", {}) if isinstance(self._last_results_response, dict) else {}
+            bundle = result.get("bundle_path", "") if isinstance(result, dict) else ""
+            if not bundle:
+                QMessageBox.information(self, "No bundle path", "Load results from a bundled scan output first.")
+                return
+            QApplication.clipboard().setText(str(bundle))
+            self.results_status.setText(f"Copied bundle path: {bundle}")
 
         def _refresh_history(self) -> None:
             request = build_history_list_request(
