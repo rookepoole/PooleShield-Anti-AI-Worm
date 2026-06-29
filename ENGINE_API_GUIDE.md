@@ -1,6 +1,6 @@
 # PooleShield Engine API Guide
 
-Version: 4.0.0
+Version: 4.1.0
 
 PooleShield v4.0 introduces a small Python engine layer so the CLI, future desktop UI, and local process bridge can call the same backend functions.
 
@@ -43,7 +43,7 @@ Response shape:
 {
   "ok": true,
   "engine": "PooleShield Engine API",
-  "engine_version": "4.0.0",
+  "engine_version": "4.1.0",
   "engine_api_version": "1",
   "operation": "profile.show",
   "result": {}
@@ -56,7 +56,7 @@ Errors are structured, not tracebacks:
 {
   "ok": false,
   "engine": "PooleShield Engine API",
-  "engine_version": "4.0.0",
+  "engine_version": "4.1.0",
   "engine_api_version": "1",
   "operation": "unknown.operation",
   "error_type": "unsupported_operation",

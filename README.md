@@ -1,30 +1,45 @@
-# PooleShield v4.0.0
+# PooleShield v4.1.0
 
 PooleShield is a privacy-first second-opinion defensive scanner for suspicious files, archives, scripts, AI-agent logs, exported chat/data bundles, and local workflow artifacts.
 
 PooleShield is defensive only. It reads local artifacts, scores static/local risk signals, and writes review reports. It does **not** execute scanned content, follow links, send emails, delete files, quarantine files, kill processes, install drivers, or modify the scanned corpus.
 
-## v4.0 milestone
+## v4.1 milestone
 
-v4.0 adds a UI-ready Engine API layer:
+v4.1 adds the first desktop UI prototype on top of the v4.0 Engine API:
 
 ```text
-pooleshield_engine.py
-ENGINE_API_GUIDE.md
-engine-dispatch
-config/profile/history/rule-pack/baseline-scan engine functions
-JSON request/response bridge
+pooleshield_desktop.py
+DESKTOP_UI_GUIDE.md
+requirements-ui.txt
+operator command: desktop
+Dashboard / Scan Folder / History / About tabs
 ```
 
-The operator CLI still works, but the newest config/profile/history/baseline-aware workflow now has a callable backend for future desktop UI work.
+The UI calls the local Engine API. It remains read-only and privacy-first.
 
 ## Quick local checks
 
 ```powershell
 python -m pytest -q
-python .\tools\repo_safety_check.py --root .
+python .	oolsepo_safety_check.py --root .
+python .	ools\privacy_leak_check.py --root .
 python .\pooleshield_operator.py profile-list
 python .\pooleshield_operator.py profile-show --name developer
+python .\pooleshield_operator.py desktop --status
+```
+
+## Install and launch the UI prototype
+
+```powershell
+python -m pip install PySide6
+python .\pooleshield_operator.py desktop
+```
+
+You can also launch directly:
+
+```powershell
+python .\pooleshield_desktop.py
 ```
 
 ## Engine API smoke test
@@ -49,7 +64,7 @@ After building a local trusted baseline, run a read-only file scan and apply tha
 ```powershell
 python .\pooleshield_operator.py file-av-scan-baseline `
   --config .\pooleshield_config.json `
-  --path "C:\path\to\folder" `
+  --path "C:\path	oolder" `
   --clean-output `
   --bundle-output `
   --privacy-bundle
@@ -77,15 +92,9 @@ The file AV scanner does not include raw file contents or matched snippets in it
 
 ## Guide files
 
-- `ENGINE_API_GUIDE.md` — v4.0 Python/JSON Engine API bridge
-- `CONFIG_GUIDE.md` — local config defaults
-- `SCAN_PROFILE_GUIDE.md` — named scan profiles
-- `SCAN_HISTORY_GUIDE.md` — local metadata-only scan history
-- `FILE_AV_GUIDE.md` — read-only file/folder AV scanner
-- `FILE_AV_BASELINE_SCAN_GUIDE.md` — baseline-aware one-command scan
-- `PRIVACY_BUNDLE_GUIDE.md` — privacy-safe upload workflow
-- `PROJECT_STATE.md` / `NEXT_BEST_MOVE.md` — continuity files
-
-## IP boundary
-
-The public/source-available code is not a publication of private Poole Math, Poole Manifold, Poole Defect Calculus, private benchmark data, or unpublished manuscripts. See `NOTICE.md`, `LICENSE`, and `docs/IP_BOUNDARIES.md` when present.
+- `ENGINE_API_GUIDE.md` — Python/JSON Engine API bridge.
+- `DESKTOP_UI_GUIDE.md` — v4.1 desktop UI prototype.
+- `CONFIG_GUIDE.md` — local config defaults.
+- `SCAN_PROFILE_GUIDE.md` — named scan profiles.
+- `SCAN_HISTORY_GUIDE.md` — local metadata-only scan history.
+- `CI_SAFETY_GUIDE.md` — repo safety and privacy leak checks.

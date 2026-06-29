@@ -39,7 +39,7 @@ from scan_history import (
 )
 from scan_profiles import ScanProfileError, get_scan_profile, profile_catalog
 
-VERSION = "4.0.0"
+VERSION = "4.1.0"
 ENGINE_API_VERSION = "1"
 
 SUPPORTED_OPERATIONS = (

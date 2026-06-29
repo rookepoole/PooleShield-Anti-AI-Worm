@@ -1,11 +1,11 @@
 {
   "tool": "PooleShield",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "release_type": "continuity_handoff",
   "last_updated": "2026-06-28",
   "mission": "Privacy-first, defensive, non-executing second-opinion scanner for suspicious files, archives, scripts, AI-agent logs, exported data bundles, and local workflow artifacts.",
-  "current_release": "v4.0",
-  "current_milestone": "Engine API refactor for UI readiness",
+  "current_release": "v4.1",
+  "current_milestone": "Desktop UI prototype for local operator testing",
   "new_files_v4_0": [
     "pooleshield_engine.py",
     "ENGINE_API_GUIDE.md",
@@ -58,5 +58,15 @@
     "history_record_scan_id": 1,
     "bundle_hash_mismatches": 0
   },
-  "current_next_best_move": "Test v4.0 locally with pytest, repo safety check, engine-dispatch, and a config-driven baseline-aware scan through the Engine API. Upload the privacy bundle before pushing v4.0."
+  "current_next_best_move": "Test v4.1 locally with pytest, repo safety check, privacy leak check, desktop --status, then install PySide6 and run a baseline-aware scan through the UI or CLI. Upload the generated privacy bundle before pushing v4.1.",
+  "new_files_v4_1": [
+    "pooleshield_desktop.py",
+    "DESKTOP_UI_GUIDE.md",
+    "requirements-ui.txt",
+    "tests/test_desktop_ui.py"
+  ],
+  "new_commands_v4_1": [
+    "desktop",
+    "desktop --status"
+  ]
 }

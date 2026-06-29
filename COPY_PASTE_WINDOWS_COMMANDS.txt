@@ -1,54 +1,24 @@
-PooleShield v4.0 local test commands
+PooleShield v4.1 local test commands
+=====================================
 
-1) Extract and enter package
+1) Extract the package, then open PowerShell in the package folder.
 
-cd "C:\Users\rookp"
-Remove-Item -Recurse -Force ".\pooleshield_v4_0_package" -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Path ".\pooleshield_v4_0_package" | Out-Null
-Expand-Archive -Path "C:\Users\rookp\Downloads\pooleshield_v4_0_package.zip" -DestinationPath ".\pooleshield_v4_0_package"
-cd ".\pooleshield_v4_0_package"
-
-2) Safety/test checks
+2) Run the core checks:
 
 python -m pytest -q
 python .\tools\repo_safety_check.py --root .
-python .\pooleshield_operator.py profile-list
-python .\pooleshield_operator.py profile-show --name developer
+python .\tools\privacy_leak_check.py --root .
+python .\pooleshield_operator.py desktop --status
 
-3) Engine API bridge smoke test
+3) Install UI dependency:
 
-@'
-{
-  "operation": "profile.show",
-  "params": {
-    "name": "developer"
-  }
-}
-'@ | Set-Content .\engine_request.json
+python -m pip install PySide6
 
-python .\pooleshield_operator.py engine-dispatch --request .\engine_request.json --output .\engine_response.json
+4) Launch desktop prototype:
 
-4) Create local config for real scan
+python .\pooleshield_operator.py desktop
 
-python .\pooleshield_operator.py config-init --config .\pooleshield_config.json --force
-
-$ConfigPath = ".\pooleshield_config.json"
-$Config = Get-Content $ConfigPath -Raw | ConvertFrom-Json
-
-$Config.defaults.baseline = "C:\Users\rookp\pooleshield_v3_2_package\local_trust\trusted_file_baseline.json"
-$Config.defaults.rule_pack = ".\examples\rule_packs\file_av_rules.default.json"
-$Config.defaults.file_av_baseline_scan_output_dir = ".\out\file_av_real_small_engine"
-$Config.defaults.scan_profile = "developer"
-$Config.defaults.privacy_bundle = $true
-$Config.defaults.history_db = ".\local_history\pooleshield_scan_history.sqlite"
-$Config.defaults.record_history = $true
-
-$Config | ConvertTo-Json -Depth 20 | Set-Content $ConfigPath
-
-python .\pooleshield_operator.py config-validate --config .\pooleshield_config.json
-python .\pooleshield_operator.py history-init --config .\pooleshield_config.json
-
-5) Run v4.0 engine-backed baseline scan
+5) If you need a reproducible CLI scan bundle instead of using the UI:
 
 python .\pooleshield_operator.py file-av-scan-baseline `
   --config .\pooleshield_config.json `
@@ -57,19 +27,8 @@ python .\pooleshield_operator.py file-av-scan-baseline `
   --bundle-output `
   --privacy-bundle
 
-6) Verify local history
+6) Upload only the generated privacy bundle, not the package ZIP:
 
-python .\pooleshield_operator.py history-list `
-  --config .\pooleshield_config.json `
-  --limit 5
+out\file_av_desktop_v4_1\pooleshield_results_bundle.zip
 
-7) Upload this bundle for verification
-
-C:\Users\rookp\pooleshield_v4_0_package\out\file_av_real_small_engine\pooleshield_results_bundle.zip
-
-Expected final verdict:
-
-CLEAN_AFTER_POLICY
-0 REQUIRE_APPROVAL
-0 BLOCK
-0 QUARANTINE
+Never commit local config, local baselines, local history DBs, out folders, or result bundles.

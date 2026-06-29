@@ -31,7 +31,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
-VERSION = "4.0.0"
+VERSION = "4.1.0"
 SUPPORTED_TYPES = {
     "filename_regex",
     "path_regex",
