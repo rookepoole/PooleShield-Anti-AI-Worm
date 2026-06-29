@@ -1,10 +1,10 @@
 {
   "tool": "PooleShield",
-  "version": "5.1.0",
+  "version": "5.1.1",
   "release_type": "continuity_handoff",
   "last_updated": "2026-06-28",
   "mission": "Privacy-first, defensive, non-executing second-opinion scanner for suspicious files, archives, scripts, AI-agent logs, exported data bundles, and local workflow artifacts.",
-  "current_release": "v5.1",
+  "current_release": "v5.1.1",
   "current_milestone": "Windows installer tooling path",
   "safety_boundary": {
     "allowed": [
@@ -76,7 +76,7 @@
     "history_record_scan_id": 1,
     "bundle_hash_mismatches": 0
   },
-  "current_next_best_move": "Test v5.1 locally with pytest, repo safety check, privacy leak check, installer-build status/dry-run/write-script, and a baseline-aware scan. Upload the generated privacy bundle before pushing v5.1.",
+  "current_next_best_move": "Test v5.1.1 locally with pytest, repo safety check, privacy leak check, installer-build status/dry-run/write-script, and a baseline-aware scan. Upload the generated privacy bundle before pushing v5.1.1.",
   "new_files_v5_1": [
     "installer_build.py",
     "build_installer_windows.ps1",

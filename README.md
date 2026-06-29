@@ -1,12 +1,12 @@
-# PooleShield v5.1.0
+# PooleShield v5.1.1
 
 PooleShield is a privacy-first second-opinion defensive scanner for suspicious files, archives, scripts, AI-agent logs, exported chat/data bundles, and local workflow artifacts.
 
 PooleShield is defensive only. It reads local artifacts, scores static/local risk signals, and writes review reports. It does **not** execute scanned content, follow links, send emails, delete files, quarantine files, kill processes, install drivers, or modify the scanned corpus.
 
-## v5.1 milestone
+## v5.1.1 milestone
 
-v5.1 adds local Windows installer tooling on top of the verified v5.0 portable build:
+v5.1.1 patches the Windows installer tooling on top of the verified v5.0 portable build:
 
 ```text
 installer_build.py
@@ -17,7 +17,7 @@ installer-build
 installer.status / installer.plan Engine API operations
 ```
 
-The installer helper can inspect a portable folder, generate an Inno Setup script, show a dry-run compile plan, and optionally run the Inno Setup compiler locally when the operator explicitly requests it.
+The installer helper can inspect a portable folder, generate an Inno Setup script, show a dry-run compile plan, and optionally run the Inno Setup compiler locally when the operator explicitly requests it. This patch fixes `installer-build --run-iscc --portable-dir ...` so the final compile step uses the supplied portable folder instead of the default `dist/PooleShield` path.
 
 ## Quick local checks
 

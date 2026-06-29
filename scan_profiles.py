@@ -11,7 +11,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Dict, Mapping, Optional
 
-VERSION = "5.1.0"
+VERSION = "5.1.1"
 
 SCAN_PROFILE_NAMES = (
     "quick",

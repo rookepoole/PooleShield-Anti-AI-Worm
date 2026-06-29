@@ -1,6 +1,6 @@
-# PooleShield v5.1 Windows Installer Build Guide
+# PooleShield v5.1.1 Windows Installer Build Guide
 
-PooleShield v5.1 adds local Windows installer tooling for the already-built portable app.
+PooleShield v5.1.1 adds local Windows installer tooling for the already-built portable app.
 
 The installer path is still local and explicit:
 
@@ -9,6 +9,11 @@ The installer path is still local and explicit:
 - it can compile that script only if the operator explicitly runs `--run-iscc`
 - it does not scan, execute, delete, quarantine, or trust scanned files
 - it does not include local configs, baselines, history databases, scan outputs, or result bundles
+
+
+## v5.1.1 patch note
+
+`installer-build --run-iscc --portable-dir ...` now forwards the supplied portable folder into the final compile step. You no longer need to copy the portable app into `dist/PooleShield` as a workaround.
 
 ## Commands
 
@@ -33,7 +38,7 @@ python .\pooleshield_operator.py installer-build --write-script --force
 Compile the installer after installing Inno Setup 6:
 
 ```powershell
-python .\pooleshield_operator.py installer-build --run-iscc --output .\installer_build_result.json
+python .\pooleshield_operator.py installer-build --run-iscc --portable-dir C:\Users\rookp\Desktop\PooleShieldPortable_v5_0_RELEASE --force --output .\installer_build_result.json
 ```
 
 Generated installer artifacts are local build products and must not be committed:

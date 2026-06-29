@@ -1,6 +1,8 @@
 # Next Best Move
 
-Test PooleShield v5.1 locally and verify the Windows installer tooling path.
+Test PooleShield v5.1.1 locally and verify the Windows installer `--portable-dir` patch.
+
+v5.1.1 fixes the v5.1 bug where `installer-build --run-iscc --portable-dir ...` ignored the supplied portable folder during the final compile step.
 
 ```powershell
 python -m pytest -q
@@ -10,7 +12,7 @@ python .\pooleshield_operator.py desktop --status
 python .\pooleshield_operator.py installer-build --status --portable-dir C:\Users\rookp\Desktop\PooleShieldPortable_v5_0_RELEASE
 ```
 
-Verify the installer build plan without running Inno Setup:
+Verify the installer build plan and script using the explicit portable folder:
 
 ```powershell
 python .\pooleshield_operator.py installer-build `
@@ -24,30 +26,14 @@ python .\pooleshield_operator.py installer-build `
   --force
 ```
 
-Optional actual installer compile after installing Inno Setup 6:
+Compile the installer without copying the portable app into `dist\PooleShield`:
 
 ```powershell
 python .\pooleshield_operator.py installer-build `
   --run-iscc `
   --portable-dir C:\Users\rookp\Desktop\PooleShieldPortable_v5_0_RELEASE `
+  --force `
   --output .\installer_build_result.json
 ```
 
-Run a baseline-aware scan using the CLI for a reproducible v5.1 bundle:
-
-```powershell
-python .\pooleshield_operator.py file-av-scan-baseline `
-  --config .\pooleshield_config.json `
-  --path C:\path\to\scan-folder `
-  --clean-output `
-  --bundle-output `
-  --privacy-bundle
-```
-
-Upload only the generated privacy bundle:
-
-```text
-out\file_av_desktop_v5_1\pooleshield_results_bundle.zip
-```
-
-If the bundle verifies clean, push v5.1. After v5.1, compile the actual installer locally and verify installer metadata.
+If that works, upload the metadata-only installer verification ZIP, not the installer executable.

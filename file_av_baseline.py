@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from result_bundler import bundle_output_dir
 
-VERSION = "5.1.0"
+VERSION = "5.1.1"
 REVIEW_DECISIONS = {"REQUIRE_APPROVAL", "BLOCK", "QUARANTINE"}
 ALLOW_DECISIONS = {"ALLOW", "ALLOW_LOG"}
 

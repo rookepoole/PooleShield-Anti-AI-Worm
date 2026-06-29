@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PooleShield v5.1 Windows installer helper.
+"""PooleShield v5.1.1 Windows installer helper.
 
 Defensive purpose:
   Generate and optionally compile a local Inno Setup installer script for the
@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
-VERSION = "5.1.0"
+VERSION = "5.1.1"
 DEFAULT_APP_NAME = "PooleShield"
 DEFAULT_APP_VERSION = VERSION
 DEFAULT_PUBLISHER = "Rooke Poole"
@@ -62,8 +62,10 @@ def find_iscc() -> Optional[str]:
     candidates = [
         Path(r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe"),
         Path(r"C:\Program Files\Inno Setup 6\ISCC.exe"),
+        Path.home() / "AppData" / "Local" / "Programs" / "Inno Setup 6" / "ISCC.exe",
         Path(r"C:\Program Files (x86)\Inno Setup 5\ISCC.exe"),
         Path(r"C:\Program Files\Inno Setup 5\ISCC.exe"),
+        Path.home() / "AppData" / "Local" / "Programs" / "Inno Setup 5" / "ISCC.exe",
     ]
     for c in candidates:
         if c.exists():
@@ -274,17 +276,38 @@ def installer_plan(
     }
 
 
-def run_iscc(script_path: str = DEFAULT_SCRIPT_PATH, *, root: Optional[str] = None) -> Dict[str, Any]:
+def run_iscc(
+    script_path: str = DEFAULT_SCRIPT_PATH,
+    *,
+    root: Optional[str] = None,
+    portable_dir: str = DEFAULT_PORTABLE_DIR,
+    output_dir: str = DEFAULT_OUTPUT_DIR,
+    app_name: str = DEFAULT_APP_NAME,
+    app_version: str = DEFAULT_APP_VERSION,
+    publisher: str = DEFAULT_PUBLISHER,
+    installer_basename: str = DEFAULT_INSTALLER_BASENAME,
+    force: bool = False,
+) -> Dict[str, Any]:
     repo = root_path(root)
-    status = installer_status(root=str(repo))
+    status = installer_status(root=str(repo), portable_dir=portable_dir, app_name=app_name)
     if not status["safe_to_attempt_installer"]:
         raise RuntimeError("portable folder is not safe/ready for installer; check installer-build --status")
     iscc = find_iscc()
     if not iscc:
         raise RuntimeError("Inno Setup compiler was not found. Install Inno Setup 6 or add ISCC.exe to PATH.")
     script = (repo / script_path).resolve()
-    if not script.exists():
-        write_inno_script(script_path, root=str(repo), force=True)
+    if force or not script.exists():
+        write_inno_script(
+            script_path,
+            root=str(repo),
+            portable_dir=portable_dir,
+            output_dir=output_dir,
+            app_name=app_name,
+            app_version=app_version,
+            publisher=publisher,
+            installer_basename=installer_basename,
+            force=True,
+        )
     cmd = [iscc, str(script)]
     proc = subprocess.run(cmd, cwd=repo, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return {
@@ -292,6 +315,13 @@ def run_iscc(script_path: str = DEFAULT_SCRIPT_PATH, *, root: Optional[str] = No
         "version": VERSION,
         "mode": "installer-build-run",
         "root": str(repo),
+        "portable_dir": status["portable_dir"],
+        "portable_file_count": status["portable_file_count"],
+        "portable_total_size_bytes": status["portable_total_size_bytes"],
+        "script_path": str(script),
+        "output_dir": str((repo / output_dir).resolve()),
+        "expected_installer": str((repo / output_dir / f"{installer_basename}.exe").resolve()),
+        "installer_basename": installer_basename,
         "command": cmd,
         "returncode": proc.returncode,
         "stdout_tail": proc.stdout[-4000:],
@@ -302,7 +332,7 @@ def run_iscc(script_path: str = DEFAULT_SCRIPT_PATH, *, root: Optional[str] = No
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="Build/status helper for PooleShield v5.1 Windows installer.")
+    parser = argparse.ArgumentParser(description="Build/status helper for PooleShield v5.1.1 Windows installer.")
     parser.add_argument("--root", default=".")
     parser.add_argument("--portable-dir", default=DEFAULT_PORTABLE_DIR)
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
@@ -324,7 +354,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         elif args.write_script:
             result = write_inno_script(args.script_path, root=args.root, portable_dir=args.portable_dir, output_dir=args.output_dir, app_name=args.name, app_version=args.app_version, publisher=args.publisher, installer_basename=args.installer_basename, force=args.force)
         elif args.run_iscc:
-            result = run_iscc(args.script_path, root=args.root)
+            result = run_iscc(
+                args.script_path,
+                root=args.root,
+                portable_dir=args.portable_dir,
+                output_dir=args.output_dir,
+                app_name=args.name,
+                app_version=args.app_version,
+                publisher=args.publisher,
+                installer_basename=args.installer_basename,
+                force=args.force,
+            )
         else:
             result = installer_plan(root=args.root, portable_dir=args.portable_dir, output_dir=args.output_dir, script_path=args.script_path, app_name=args.name, app_version=args.app_version, publisher=args.publisher, installer_basename=args.installer_basename)
     except Exception as exc:
