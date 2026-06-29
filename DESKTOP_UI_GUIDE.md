@@ -1,8 +1,8 @@
 # PooleShield Desktop UI Guide
 
-Version: 4.3.0
+Version: 4.4.0
 
-PooleShield v4.3 provides a local desktop prototype on top of the Engine API with Results and Baseline Manager tabs.
+PooleShield v4.4 provides a local desktop prototype on top of the Engine API with Results, Baseline Manager, and Rule Pack Editor tabs.
 
 The UI is still defensive and local-only:
 
@@ -40,12 +40,13 @@ Or launch through the operator CLI:
 python .\pooleshield_operator.py desktop
 ```
 
-## Screens in v4.3
+## Screens in v4.4
 
 - Dashboard: validate config and list scan profiles.
 - Scan Folder: run a baseline-aware folder scan using the Engine API.
 - Results: load metadata-only scan results, filter rows, inspect details, and copy the privacy-bundle path.
 - Baseline: load trusted baseline metadata, filter entries, copy SHA/path values, and compare two baseline JSON files.
+- Rule Packs: load rule-pack metadata, validate rules, filter rows, export an editable copy, and save selected-rule edits to a JSON copy.
 - History: list local metadata-only scan history rows.
 - About: shows the safety boundary and prototype status.
 
@@ -70,13 +71,13 @@ python .\pooleshield_operator.py desktop
 The default UI scan output is:
 
 ```text
-out/file_av_desktop_v4_3/
+out/file_av_desktop_v4_4/
 ```
 
 Upload only the generated privacy bundle if you want review:
 
 ```text
-out/file_av_desktop_v4_3/pooleshield_results_bundle.zip
+out/file_av_desktop_v4_4/pooleshield_results_bundle.zip
 ```
 
-Do not commit local config, local history DBs, baselines, output folders, or result bundles.
+Do not commit local config, local history DBs, baselines, local edited rule packs, output folders, or result bundles.

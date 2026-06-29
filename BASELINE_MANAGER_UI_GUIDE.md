@@ -1,6 +1,6 @@
-# PooleShield v4.3 Baseline Manager UI Guide
+# PooleShield v4.4 Baseline Manager UI Guide
 
-PooleShield v4.3 adds the first local Baseline Manager UI on top of the v4.0 Engine API and the v4.1/v4.2 desktop prototype.
+PooleShield v4.4 adds the first local Baseline Manager UI on top of the v4.0 Engine API and the v4.1/v4.2 desktop prototype.
 
 The Baseline Manager is metadata-only and local-first:
 
@@ -12,7 +12,7 @@ The Baseline Manager is metadata-only and local-first:
 - compares two baseline JSON files by SHA256
 - does not open, execute, delete, quarantine, restore, or trust scanned files
 - does not upload raw scanned content
-- does not modify the baseline file in v4.3
+- does not modify the baseline file in v4.4
 
 ## CLI smoke tests
 

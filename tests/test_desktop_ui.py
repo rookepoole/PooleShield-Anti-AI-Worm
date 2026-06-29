@@ -9,10 +9,14 @@ from pooleshield_desktop import (
     build_results_load_request,
     build_baseline_load_request,
     build_baseline_diff_request,
+    build_rule_pack_load_request,
+    build_rule_pack_export_default_request,
+    build_rule_pack_update_rule_request,
     qt_status,
     summarize_engine_response,
     summarize_results_response,
     summarize_baseline_response,
+    summarize_rule_pack_response,
 )
 
 
@@ -60,6 +64,15 @@ def test_desktop_request_builders():
     assert diff["params"]["baseline_a"] == "a.json"
     assert diff["params"]["baseline_b"] == "b.json"
     assert diff["params"]["limit"] == 7
+    rule_pack = build_rule_pack_load_request("rules.json", enabled="enabled", type_filter="text_regex", text="token", limit=9)
+    assert rule_pack["operation"] == "rule_pack.load"
+    assert rule_pack["params"]["rule_pack"] == "rules.json"
+    assert rule_pack["params"]["enabled"] == "enabled"
+    exported = build_rule_pack_export_default_request("rules.editable.json", force=True)
+    assert exported["operation"] == "rule_pack.export_default"
+    updated = build_rule_pack_update_rule_request("rules.json", "rules.edited.json", index=0, enabled=False, risk_delta=0.2)
+    assert updated["operation"] == "rule_pack.update_rule"
+    assert updated["params"]["enabled"] is False
 
 
 def test_desktop_response_summary():
@@ -91,7 +104,7 @@ def test_desktop_results_summary():
             "items_after_filter": 12,
             "items_returned": 12,
             "baseline_matches": 102,
-            "bundle_path": "out/file_av_desktop_v4_3/pooleshield_results_bundle.zip",
+            "bundle_path": "out/file_av_desktop_v4_4/pooleshield_results_bundle.zip",
         },
     }
     summary = summarize_results_response(ok)
@@ -119,3 +132,25 @@ def test_desktop_baseline_summary():
     assert "entries_returned=3" in summary
     bad = summarize_baseline_response({"ok": False, "error_type": "FileNotFoundError", "error": "missing baseline"})
     assert bad.startswith("ERROR [FileNotFoundError]")
+
+
+
+def test_desktop_rule_pack_summary():
+    ok = {
+        "ok": True,
+        "result": {
+            "mode": "rule-pack-load",
+            "total_rules_available": 5,
+            "rules_after_filter": 2,
+            "rules_returned": 2,
+            "rules_enabled": 4,
+            "rules_disabled": 1,
+            "valid": True,
+            "rule_pack_path": "examples/rule_packs/file_av_rules.default.json",
+        },
+    }
+    summary = summarize_rule_pack_response(ok)
+    assert "rule-pack-load" in summary
+    assert "rules_returned=2" in summary
+    bad = summarize_rule_pack_response({"ok": False, "error_type": "RulePackError", "error": "bad rule"})
+    assert bad.startswith("ERROR [RulePackError]")

@@ -20,7 +20,12 @@ from types import SimpleNamespace
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from file_av_baseline_scan import run_file_av_scan_with_baseline
-from file_av_rules import validate_rule_pack_file
+from file_av_rules import (
+    validate_rule_pack_file,
+    summarize_rule_pack_file,
+    export_default_rule_pack,
+    update_rule_pack_rule,
+)
 from pooleshield_config import (
     PooleShieldConfigError,
     expand_config_path,
@@ -39,7 +44,7 @@ from scan_history import (
 )
 from scan_profiles import ScanProfileError, get_scan_profile, profile_catalog
 
-VERSION = "4.3.0"
+VERSION = "4.4.0"
 ENGINE_API_VERSION = "1"
 
 SUPPORTED_OPERATIONS = (
@@ -53,6 +58,9 @@ SUPPORTED_OPERATIONS = (
     "history.list",
     "history.show",
     "rule_pack.validate",
+    "rule_pack.load",
+    "rule_pack.export_default",
+    "rule_pack.update_rule",
     "file_av.scan_baseline",
     "results.load",
     "baseline.load",
@@ -250,6 +258,50 @@ def rule_pack_validate(
     return _with_engine_metadata(summary, "rule_pack.validate")
 
 
+
+def rule_pack_load(
+    rule_pack: str,
+    enabled: str = "ANY",
+    type_filter: str = "",
+    text: str = "",
+    limit: int = 500,
+) -> Dict[str, Any]:
+    """Load a local rule pack as metadata-only rows for the Rule Pack Editor UI."""
+    summary = summarize_rule_pack_file(rule_pack, enabled=enabled, type_filter=type_filter, text=text, limit=limit)
+    return _with_engine_metadata(summary, "rule_pack.load")
+
+
+def rule_pack_export_default(output_path: str, default_path: str = "examples/rule_packs/file_av_rules.default.json", force: bool = False) -> Dict[str, Any]:
+    """Copy the public default rule pack to an editable local path."""
+    summary = export_default_rule_pack(output_path=output_path, default_path=default_path, force=force)
+    return _with_engine_metadata(summary, "rule_pack.export_default")
+
+
+def rule_pack_update_rule(
+    rule_pack: str,
+    output_path: str,
+    rule_id: Optional[str] = None,
+    index: Optional[int] = None,
+    enabled: Optional[bool] = None,
+    risk_delta: Optional[float] = None,
+    label: Optional[str] = None,
+    pattern: Optional[str] = None,
+    reason: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Write an edited rule-pack JSON copy. It never modifies scanned files."""
+    summary = update_rule_pack_rule(
+        rule_pack=rule_pack,
+        output_path=output_path,
+        rule_id=rule_id,
+        index=index,
+        enabled=enabled,
+        risk_delta=risk_delta,
+        label=label,
+        pattern=pattern,
+        reason=reason,
+    )
+    return _with_engine_metadata(summary, "rule_pack.update_rule")
+
 def file_av_scan_baseline(
     paths: Sequence[str],
     config: Optional[str] = None,
@@ -426,7 +478,7 @@ def results_load(
     text: Optional[str] = None,
     limit: int = 500,
 ) -> Dict[str, Any]:
-    """Load metadata-only scan results for the v4.3 Results UI.
+    """Load metadata-only scan results for the v4.4 Results UI.
 
     This reads PooleShield output JSON reports only. It does not open scanned
     files, execute anything, modify the scanned corpus, or include matched file
@@ -555,7 +607,7 @@ def baseline_load(
     text: Optional[str] = None,
     limit: int = 500,
 ) -> Dict[str, Any]:
-    """Load a local trusted-hash baseline as metadata-only rows for v4.3.
+    """Load a local trusted-hash baseline as metadata-only rows for v4.4.
 
     This reads only the local trusted baseline JSON. It does not open, execute,
     modify, delete, quarantine, or trust any scanned files.
@@ -689,6 +741,9 @@ def dispatch(request: Dict[str, Any]) -> Dict[str, Any]:
         "history.list": history_list,
         "history.show": history_show,
         "rule_pack.validate": rule_pack_validate,
+        "rule_pack.load": rule_pack_load,
+        "rule_pack.export_default": rule_pack_export_default,
+        "rule_pack.update_rule": rule_pack_update_rule,
         "file_av.scan_baseline": file_av_scan_baseline,
         "results.load": results_load,
         "baseline.load": baseline_load,

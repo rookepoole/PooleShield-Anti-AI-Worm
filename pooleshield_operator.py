@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v4.3.0 operator CLI.
+PooleShield v4.4.0 operator CLI.
 
 Defensive purpose:
   Provide a real operator workflow for scanning folders/log exports, producing
@@ -47,7 +47,7 @@ from scan_history import (
 )
 import pooleshield_engine as engine
 
-VERSION = "4.3.0"
+VERSION = "4.4.0"
 
 
 def policy_path_for(profile: str) -> str:
@@ -780,7 +780,7 @@ def run_dat_batch(
     return summary
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="PooleShield v4.3 real operator workflow and desktop prototype")
+    parser = argparse.ArgumentParser(description="PooleShield v4.4 real operator workflow and desktop prototype")
     sub = parser.add_subparsers(dest="command", required=True)
 
     config_init = sub.add_parser("config-init", help="Create a local PooleShield config JSON")
@@ -1073,6 +1073,32 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     rule_pack_cmd.add_argument("--bundle-path", default=None)
     rule_pack_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
 
+    rule_pack_load_cmd = sub.add_parser("rule-pack-load", help="Load metadata-only rule pack entries for the v4.4 Rule Pack Editor UI")
+    rule_pack_load_cmd.add_argument("--rule-pack", required=True, help="Local file-AV rule pack JSON path")
+    rule_pack_load_cmd.add_argument("--enabled", default="ANY", help="ANY, enabled, or disabled")
+    rule_pack_load_cmd.add_argument("--type", dest="type_filter", default="", help="Optional rule type substring filter")
+    rule_pack_load_cmd.add_argument("--text", default="", help="Optional id/label/pattern/reason substring filter")
+    rule_pack_load_cmd.add_argument("--limit", type=int, default=500, help="Maximum metadata rows to return")
+    rule_pack_load_cmd.add_argument("--output", default=None, help="Optional path to write JSON response")
+
+    rule_pack_export_cmd = sub.add_parser("rule-pack-export-default", help="Copy the public default rule pack to a local editable JSON file")
+    rule_pack_export_cmd.add_argument("--output", required=True, help="Destination JSON path for the editable rule pack copy")
+    rule_pack_export_cmd.add_argument("--default-path", default="examples/rule_packs/file_av_rules.default.json", help="Source default rule pack path")
+    rule_pack_export_cmd.add_argument("--force", action="store_true", help="Overwrite output if it already exists")
+
+    rule_pack_update_cmd = sub.add_parser("rule-pack-update-rule", help="Write an edited rule-pack copy for one selected rule")
+    rule_pack_update_cmd.add_argument("--rule-pack", required=True, help="Source rule pack JSON path")
+    rule_pack_update_cmd.add_argument("--output", required=True, help="Destination JSON path for edited rule pack")
+    rule_pack_update_cmd.add_argument("--rule-id", default=None, help="Rule id to edit")
+    rule_pack_update_cmd.add_argument("--index", type=int, default=None, help="Rule index to edit if no rule id is used")
+    enabled_group = rule_pack_update_cmd.add_mutually_exclusive_group()
+    enabled_group.add_argument("--enabled", action="store_true", help="Set selected rule enabled=true")
+    enabled_group.add_argument("--disabled", action="store_true", help="Set selected rule enabled=false")
+    rule_pack_update_cmd.add_argument("--risk-delta", type=float, default=None, help="Set risk_delta between 0 and 1")
+    rule_pack_update_cmd.add_argument("--label", default=None, help="Set rule label")
+    rule_pack_update_cmd.add_argument("--pattern", default=None, help="Set regex pattern for regex-based rules")
+    rule_pack_update_cmd.add_argument("--reason", default=None, help="Set human-readable reason")
+
     history_init_cmd = sub.add_parser("history-init", help="Initialize or verify a local SQLite scan-history database")
     history_init_cmd.add_argument("--config", default=None, help="Optional PooleShield config JSON for defaults.history_db")
     history_init_cmd.add_argument("--history-db", default=None, help="Local SQLite history DB path")
@@ -1104,7 +1130,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     engine_cmd.add_argument("--request", required=True, help="JSON request file with operation and params")
     engine_cmd.add_argument("--output", default=None, help="Optional path to write the JSON response")
 
-    results_load_cmd = sub.add_parser("results-load", help="Load metadata-only scan results for the v4.3 Results UI")
+    results_load_cmd = sub.add_parser("results-load", help="Load metadata-only scan results for the v4.4 Results UI")
     results_load_cmd.add_argument("--output-dir", required=True, help="Existing PooleShield output folder")
     results_load_cmd.add_argument("--decision", default="ANY", help="Optional effective decision filter")
     results_load_cmd.add_argument("--label", default="", help="Optional label substring filter")
@@ -1112,7 +1138,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     results_load_cmd.add_argument("--limit", type=int, default=500, help="Maximum metadata rows to return")
     results_load_cmd.add_argument("--output", default=None, help="Optional path to write JSON response")
 
-    baseline_load_cmd = sub.add_parser("baseline-load", help="Load metadata-only trusted baseline entries for the v4.3 Baseline Manager UI")
+    baseline_load_cmd = sub.add_parser("baseline-load", help="Load metadata-only trusted baseline entries for the v4.4 Baseline Manager UI")
     baseline_load_cmd.add_argument("--baseline", required=True, help="Local trusted_file_baseline.json path")
     baseline_load_cmd.add_argument("--decision", default="ANY", help="Optional trusted decision filter")
     baseline_load_cmd.add_argument("--kind", default="", help="Optional kind substring filter")
@@ -1126,7 +1152,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     baseline_diff_cmd.add_argument("--limit", type=int, default=500, help="Maximum entries per diff bucket to return")
     baseline_diff_cmd.add_argument("--output", default=None, help="Optional path to write JSON response")
 
-    desktop_cmd = sub.add_parser("desktop", help="Launch the v4.3 local desktop UI prototype")
+    desktop_cmd = sub.add_parser("desktop", help="Launch the v4.4 local desktop UI prototype")
     desktop_cmd.add_argument("--status", action="store_true", help="Print desktop dependency status instead of launching UI")
 
     bundle_cmd = sub.add_parser("bundle", help="Bundle an existing PooleShield output folder into one ZIP for upload/sharing")
@@ -1196,6 +1222,57 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if args.command == "engine-dispatch":
         summary = engine.dispatch_file(args.request, output_path=args.output)
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0 if summary.get("ok") else 2
+
+    if args.command == "rule-pack-load":
+        summary = engine.dispatch({
+            "operation": "rule_pack.load",
+            "params": {
+                "rule_pack": args.rule_pack,
+                "enabled": args.enabled,
+                "type_filter": args.type_filter,
+                "text": args.text,
+                "limit": args.limit,
+            },
+        })
+        if args.output:
+            write_json(args.output, summary)
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0 if summary.get("ok") else 2
+
+    if args.command == "rule-pack-export-default":
+        summary = engine.dispatch({
+            "operation": "rule_pack.export_default",
+            "params": {
+                "output_path": args.output,
+                "default_path": args.default_path,
+                "force": args.force,
+            },
+        })
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0 if summary.get("ok") else 2
+
+    if args.command == "rule-pack-update-rule":
+        enabled_value = None
+        if args.enabled:
+            enabled_value = True
+        if args.disabled:
+            enabled_value = False
+        summary = engine.dispatch({
+            "operation": "rule_pack.update_rule",
+            "params": {
+                "rule_pack": args.rule_pack,
+                "output_path": args.output,
+                "rule_id": args.rule_id,
+                "index": args.index,
+                "enabled": enabled_value,
+                "risk_delta": args.risk_delta,
+                "label": args.label,
+                "pattern": args.pattern,
+                "reason": args.reason,
+            },
+        })
         print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0 if summary.get("ok") else 2
 

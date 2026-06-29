@@ -1,17 +1,24 @@
 # PooleShield Engine API Guide
 
-Version: 4.3.0
+Version: 4.4.0
 
-PooleShield v4.0 introduced a small Python engine layer so the CLI, desktop UI, and local process bridge can call the same backend functions. v4.3 extends that layer with metadata-only result loading for the Results UI.
+PooleShield v4.0 introduced a small Python engine layer so the CLI, desktop UI, and local process bridge can call the same backend functions. v4.4 extends that layer with metadata-only rule-pack loading and explicit rule-pack copy/update operations for the Rule Pack Editor UI.
 
 ## Safety boundary
 
-The Engine API is still defensive and read-only by default. It does not execute scanned files, delete files, quarantine files, kill processes, install hooks/drivers, send network requests, or upload raw scanned contents.
+The Engine API is still defensive and read-only toward scanned files. It does not execute scanned files, delete files, quarantine files, kill processes, install hooks/drivers, send network requests, or upload raw scanned contents. v4.4 can write only operator-requested rule-pack JSON copies.
 
 ## Python API
 
 ```python
-from pooleshield_engine import profile_show, file_av_scan_baseline, results_load
+from pooleshield_engine import (
+    profile_show,
+    file_av_scan_baseline,
+    results_load,
+    rule_pack_load,
+    rule_pack_export_default,
+    rule_pack_update_rule,
+)
 
 profile = profile_show("developer")
 
@@ -24,9 +31,28 @@ summary = file_av_scan_baseline(
 )
 
 results = results_load(
-    output_dir=r".\out\file_av_desktop_v4_3",
+    output_dir=r".\out\file_av_desktop_v4_4",
     decision="ALLOW_LOG",
     limit=25,
+)
+
+rules = rule_pack_load(
+    rule_pack=r".\examples\rule_packs\file_av_rules.default.json",
+    enabled="enabled",
+    limit=25,
+)
+
+exported = rule_pack_export_default(
+    output_path=r".\local_rule_packs\file_av_rules.editable.json",
+    force=True,
+)
+
+updated = rule_pack_update_rule(
+    rule_pack=r".\local_rule_packs\file_av_rules.editable.json",
+    output_path=r".\local_rule_packs\file_av_rules.edited.json",
+    index=0,
+    enabled=False,
+    risk_delta=0.10,
 )
 ```
 
@@ -36,9 +62,11 @@ Request shape:
 
 ```json
 {
-  "operation": "profile.show",
+  "operation": "rule_pack.load",
   "params": {
-    "name": "developer"
+    "rule_pack": ".\\examples\\rule_packs\\file_av_rules.default.json",
+    "enabled": "enabled",
+    "limit": 25
   }
 }
 ```
@@ -49,9 +77,9 @@ Response shape:
 {
   "ok": true,
   "engine": "PooleShield Engine API",
-  "engine_version": "4.3.0",
+  "engine_version": "4.4.0",
   "engine_api_version": "1",
-  "operation": "profile.show",
+  "operation": "rule_pack.load",
   "result": {}
 }
 ```
@@ -62,7 +90,7 @@ Errors are structured, not tracebacks:
 {
   "ok": false,
   "engine": "PooleShield Engine API",
-  "engine_version": "4.3.0",
+  "engine_version": "4.4.0",
   "engine_api_version": "1",
   "operation": "unknown.operation",
   "error_type": "unsupported_operation",
@@ -75,10 +103,10 @@ Errors are structured, not tracebacks:
 ```powershell
 @'
 {
-  "operation": "results.load",
+  "operation": "rule_pack.load",
   "params": {
-    "output_dir": ".\\out\\file_av_desktop_v4_3",
-    "decision": "ALLOW_LOG",
+    "rule_pack": ".\\examples\\rule_packs\\file_av_rules.default.json",
+    "enabled": "enabled",
     "limit": 25
   }
 }
@@ -87,10 +115,12 @@ Errors are structured, not tracebacks:
 python .\pooleshield_operator.py engine-dispatch --request .\engine_request.json --output .\engine_response.json
 ```
 
-You can also use the convenience command:
+You can also use the convenience commands:
 
 ```powershell
-python .\pooleshield_operator.py results-load --output-dir .\out\file_av_desktop_v4_3 --decision ALLOW_LOG --limit 25
+python .\pooleshield_operator.py rule-pack-load --rule-pack .\examples\rule_packs\file_av_rules.default.json --enabled enabled --limit 25
+python .\pooleshield_operator.py rule-pack-export-default --output .\local_rule_packs\file_av_rules.editable.json --force
+python .\pooleshield_operator.py rule-pack-update-rule --rule-pack .\local_rule_packs\file_av_rules.editable.json --output .\local_rule_packs\file_av_rules.edited.json --index 0 --disabled --risk-delta 0.10
 ```
 
 ## Supported operations
@@ -106,17 +136,15 @@ history.record
 history.list
 history.show
 rule_pack.validate
+rule_pack.load
+rule_pack.export_default
+rule_pack.update_rule
 file_av.scan_baseline
 results.load
 baseline.load
 baseline.diff
 ```
 
-## UI-ready direction
+## v4.4 Rule Pack Editor operations
 
-The CLI remains available, but the current config/profile/history/baseline-scan/results workflow is available behind `pooleshield_engine.py`. A desktop app can now call engine functions directly or send JSON requests to the `engine-dispatch` bridge.
-
-
-## v4.3 Baseline Manager operations
-
-`baseline.load` reads a local trusted baseline as metadata-only rows for the Baseline tab. `baseline.diff` compares two baseline JSON files by SHA256. Both operations are local-only and do not modify scanned files or baseline files.
+`rule_pack.load` reads a local rule pack as metadata-only rows for the Rule Packs tab. `rule_pack.export_default` copies the public default rule pack to a local editable path. `rule_pack.update_rule` writes one selected-rule edit to an output rule-pack JSON copy. None of these operations scan, execute, trust, delete, or quarantine scanned files.

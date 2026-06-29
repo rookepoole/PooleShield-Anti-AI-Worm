@@ -18,12 +18,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
 
-VERSION = "4.3.0"
+VERSION = "4.4.0"
 
 FORBIDDEN_DIR_NAMES = {
     "out",
     "local_trust",
     "local_history",
+    "local_rule_packs",
     "extracted_dat_text",
     "extracted_dat_content",
     "extracted_text_like",
@@ -52,6 +53,9 @@ FORBIDDEN_FILE_NAMES = {
     "results_response.json",
     "baseline_response.json",
     "baseline_diff_response.json",
+    "rule_pack_response.json",
+    "rule_pack_export_response.json",
+    "rule_pack_update_response.json",
 }
 
 FORBIDDEN_SUFFIXES = {

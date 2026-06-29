@@ -33,3 +33,7 @@ results_response.json
 baseline_response.json
 
 baseline_diff_response.json
+local_rule_packs/
+rule_pack_response.json
+rule_pack_export_response.json
+rule_pack_update_response.json

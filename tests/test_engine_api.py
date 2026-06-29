@@ -13,6 +13,9 @@ from pooleshield_engine import (
     file_av_scan_baseline,
     baseline_load,
     baseline_diff,
+    rule_pack_load,
+    rule_pack_export_default,
+    rule_pack_update_rule,
     profile_list,
     results_load,
     profile_show,
@@ -205,3 +208,52 @@ def test_operator_baseline_load_cli(tmp_path: Path):
     assert data["ok"] is True
     assert data["operation"] == "baseline.load"
     assert data["result"]["entries_returned"] <= 5
+
+
+
+def test_engine_rule_pack_load_export_update(tmp_path: Path):
+    default_pack = Path("examples/rule_packs/file_av_rules.default.json")
+    loaded = rule_pack_load(str(default_pack), enabled="enabled", limit=10)
+    assert loaded["engine_version"] == VERSION
+    assert loaded["operation"] == "rule_pack.load"
+    assert loaded["valid"] is True
+    assert loaded["rules_returned"] > 0
+    first = loaded["rules"][0]
+    assert "id" in first
+    assert "risk_delta" in first
+
+    editable = tmp_path / "file_av_rules.editable.json"
+    exported = rule_pack_export_default(str(editable), force=True)
+    assert exported["operation"] == "rule_pack.export_default"
+    assert editable.exists()
+
+    edited = tmp_path / "file_av_rules.edited.json"
+    updated = rule_pack_update_rule(str(editable), str(edited), index=0, enabled=False, risk_delta=0.1)
+    assert updated["operation"] == "rule_pack.update_rule"
+    assert edited.exists()
+    assert updated["after"]["enabled"] is False
+    assert updated["after"]["risk_delta"] == 0.1
+
+
+def test_operator_rule_pack_load_cli(tmp_path: Path):
+    repo = Path(__file__).resolve().parents[1]
+    response = tmp_path / "rule_pack_response.json"
+    cmd = [
+        sys.executable,
+        str(repo / "pooleshield_operator.py"),
+        "rule-pack-load",
+        "--rule-pack",
+        "examples/rule_packs/file_av_rules.default.json",
+        "--enabled",
+        "enabled",
+        "--limit",
+        "5",
+        "--output",
+        str(response),
+    ]
+    result = subprocess.run(cmd, cwd=repo, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60)
+    assert result.returncode == 0, result.stderr
+    data = json.loads(response.read_text(encoding="utf-8"))
+    assert data["ok"] is True
+    assert data["operation"] == "rule_pack.load"
+    assert data["result"]["rules_returned"] <= 5

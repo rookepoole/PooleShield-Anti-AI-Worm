@@ -27,11 +27,12 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
-VERSION = "4.3.0"
+VERSION = "4.4.0"
 SUPPORTED_TYPES = {
     "filename_regex",
     "path_regex",
@@ -160,6 +161,205 @@ def validate_rule_pack_file(rule_pack: str) -> Dict[str, Any]:
         "rule_pack": result.to_dict(),
     }
 
+
+
+def _safe_limit(limit: int) -> int:
+    try:
+        return max(1, min(int(limit), 5000))
+    except Exception:
+        return 500
+
+
+def _normalize_rule(rule: Dict[str, Any], index: int) -> Dict[str, Any]:
+    rtype = str(rule.get("type") or "")
+    return {
+        "index": index,
+        "id": str(rule.get("id") or f"rule_{index}"),
+        "enabled": bool(rule.get("enabled", True)),
+        "type": rtype,
+        "label": str(rule.get("label") or ""),
+        "risk_delta": float(rule.get("risk_delta", 0.0) or 0.0),
+        "reason": str(rule.get("reason") or ""),
+        "pattern": str(rule.get("pattern") or ""),
+        "extensions": [str(x) for x in rule.get("extensions", [])] if isinstance(rule.get("extensions", []), list) else [],
+        "magic_types": [str(x) for x in rule.get("magic_types", [])] if isinstance(rule.get("magic_types", []), list) else [],
+        "labels": [str(x) for x in rule.get("labels", [])] if isinstance(rule.get("labels", []), list) else [],
+    }
+
+
+def _rule_matches_filters(row: Dict[str, Any], enabled: Optional[str], type_filter: str, text: str) -> bool:
+    if enabled and enabled != "ANY":
+        want = enabled.lower()
+        if want in {"true", "enabled", "yes", "1"} and not row.get("enabled"):
+            return False
+        if want in {"false", "disabled", "no", "0"} and row.get("enabled"):
+            return False
+    if type_filter and type_filter.lower() not in str(row.get("type", "")).lower():
+        return False
+    if text:
+        needle = text.lower()
+        haystack = " ".join([
+            str(row.get("id", "")),
+            str(row.get("type", "")),
+            str(row.get("label", "")),
+            str(row.get("reason", "")),
+            str(row.get("pattern", "")),
+            " ".join(row.get("extensions", [])),
+            " ".join(row.get("magic_types", [])),
+            " ".join(row.get("labels", [])),
+        ]).lower()
+        if needle not in haystack:
+            return False
+    return True
+
+
+def summarize_rule_pack_file(rule_pack: str, enabled: str = "ANY", type_filter: str = "", text: str = "", limit: int = 500) -> Dict[str, Any]:
+    """Load a rule pack as metadata for the local Rule Pack Editor UI."""
+    path = normalize_rule_pack_path(rule_pack)
+    assert path is not None
+    data = read_json(path)
+    validation = validate_rule_pack_data(data, str(path))
+    rules_raw = data.get("rules", [])
+    if not isinstance(rules_raw, list):
+        rules_raw = []
+    rows = [_normalize_rule(rule, idx) for idx, rule in enumerate(rules_raw) if isinstance(rule, dict)]
+    filtered = [row for row in rows if _rule_matches_filters(row, enabled, type_filter, text)]
+    safe_limit = _safe_limit(limit)
+    by_type: Dict[str, int] = {}
+    for row in rows:
+        key = row.get("type") or "UNKNOWN"
+        by_type[key] = by_type.get(key, 0) + 1
+    return {
+        "tool": "PooleShield rule pack loader",
+        "version": VERSION,
+        "mode": "rule-pack-load",
+        "rule_pack_path": str(path),
+        "rule_pack_version": str(data.get("version", "unknown")),
+        "valid": not validation.errors,
+        "validation": validation.to_dict(),
+        "filters": {"enabled": enabled or "ANY", "type": type_filter or "", "text": text or "", "limit": safe_limit},
+        "total_rules_available": len(rows),
+        "rules_after_filter": len(filtered),
+        "rules_returned": min(len(filtered), safe_limit),
+        "rules_enabled": sum(1 for row in rows if row.get("enabled")),
+        "rules_disabled": sum(1 for row in rows if not row.get("enabled")),
+        "by_type": by_type,
+        "rules": filtered[:safe_limit],
+        "safety_boundary": {
+            "metadata_only": True,
+            "scanned_files_opened": False,
+            "executed_files": False,
+            "modified_scanned_files": False,
+            "rule_pack_modified": False,
+        },
+    }
+
+
+def export_default_rule_pack(output_path: str, default_path: str = "examples/rule_packs/file_av_rules.default.json", force: bool = False) -> Dict[str, Any]:
+    """Copy the public default rule pack to a local editable path."""
+    src = normalize_rule_pack_path(default_path)
+    assert src is not None
+    dst = Path(output_path).expanduser()
+    if dst.exists() and not force:
+        raise FileExistsError(f"output rule pack already exists: {dst}. Use force=true or --force to overwrite.")
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(src, dst)
+    return {
+        "tool": "PooleShield rule pack export default",
+        "version": VERSION,
+        "mode": "rule-pack-export-default",
+        "source_rule_pack": str(src),
+        "output_rule_pack": str(dst),
+        "overwrote_existing": bool(force),
+        "validation": validate_rule_pack_file(str(dst)),
+        "safety_boundary": {
+            "scanned_files_opened": False,
+            "executed_files": False,
+            "modified_scanned_files": False,
+            "rule_pack_modified": True,
+            "write_target": "rule_pack_json_only",
+        },
+    }
+
+
+def _find_rule_index(rules: List[Any], rule_id: Optional[str], index: Optional[int]) -> int:
+    if index is not None:
+        idx = int(index)
+        if idx < 0 or idx >= len(rules):
+            raise IndexError(f"rule index out of range: {idx}")
+        if not isinstance(rules[idx], dict):
+            raise RulePackError(f"rules[{idx}] is not an object")
+        return idx
+    if rule_id:
+        for idx, rule in enumerate(rules):
+            if isinstance(rule, dict) and str(rule.get("id") or "") == str(rule_id):
+                return idx
+        raise KeyError(f"rule id not found: {rule_id}")
+    raise RulePackError("rule_id or index is required")
+
+
+def update_rule_pack_rule(
+    rule_pack: str,
+    output_path: str,
+    *,
+    rule_id: Optional[str] = None,
+    index: Optional[int] = None,
+    enabled: Optional[bool] = None,
+    risk_delta: Optional[float] = None,
+    label: Optional[str] = None,
+    pattern: Optional[str] = None,
+    reason: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Write an edited rule-pack copy. It never scans or modifies scanned files."""
+    src = normalize_rule_pack_path(rule_pack)
+    assert src is not None
+    data = read_json(src)
+    rules = data.get("rules", [])
+    if not isinstance(rules, list):
+        raise RulePackError("rules must be a list before a rule can be edited")
+    idx = _find_rule_index(rules, rule_id, index)
+    before = dict(rules[idx])
+    if enabled is not None:
+        rules[idx]["enabled"] = bool(enabled)
+    if risk_delta is not None:
+        value = float(risk_delta)
+        if value < 0 or value > 1:
+            raise RulePackError("risk_delta must be between 0 and 1")
+        rules[idx]["risk_delta"] = value
+    if label is not None:
+        if not str(label).strip():
+            raise RulePackError("label must be non-empty")
+        rules[idx]["label"] = str(label).strip()
+    if pattern is not None:
+        re.compile(str(pattern))
+        rules[idx]["pattern"] = str(pattern)
+    if reason is not None:
+        rules[idx]["reason"] = str(reason)
+    validation = validate_rule_pack_data(data, str(src))
+    if validation.errors:
+        raise RulePackError("updated rule pack would be invalid: " + "; ".join(validation.errors))
+    dst = Path(output_path).expanduser()
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return {
+        "tool": "PooleShield rule pack update rule",
+        "version": VERSION,
+        "mode": "rule-pack-update-rule",
+        "source_rule_pack": str(src),
+        "output_rule_pack": str(dst),
+        "rule_index": idx,
+        "rule_id": str(rules[idx].get("id") or ""),
+        "before": _normalize_rule(before, idx),
+        "after": _normalize_rule(rules[idx], idx),
+        "validation": validate_rule_pack_file(str(dst)),
+        "safety_boundary": {
+            "scanned_files_opened": False,
+            "executed_files": False,
+            "modified_scanned_files": False,
+            "rule_pack_modified": True,
+            "write_target": "rule_pack_json_only",
+        },
+    }
 
 def _regex_search(pattern: str, text: str) -> bool:
     return re.search(pattern, text or "") is not None

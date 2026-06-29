@@ -1,24 +1,26 @@
-# PooleShield v4.3.0
+# PooleShield v4.4.0
 
 PooleShield is a privacy-first second-opinion defensive scanner for suspicious files, archives, scripts, AI-agent logs, exported chat/data bundles, and local workflow artifacts.
 
 PooleShield is defensive only. It reads local artifacts, scores static/local risk signals, and writes review reports. It does **not** execute scanned content, follow links, send emails, delete files, quarantine files, kill processes, install drivers, or modify the scanned corpus.
 
-## v4.3 milestone
+## v4.4 milestone
 
-v4.3 adds the first **Baseline Manager UI** on top of the v4.0 Engine API, v4.1 desktop prototype, and v4.2 Results UI:
+v4.4 adds the first **Rule Pack Editor UI** on top of the v4.0 Engine API, v4.1 desktop prototype, v4.2 Results UI, and v4.3 Baseline Manager UI:
 
 ```text
 pooleshield_desktop.py
-BASELINE_MANAGER_UI_GUIDE.md
-engine operation: baseline.load
-engine operation: baseline.diff
-operator command: baseline-load
-operator command: baseline-diff
-Dashboard / Scan Folder / Results / Baseline / History / About tabs
+RULE_PACK_EDITOR_UI_GUIDE.md
+engine operation: rule_pack.load
+engine operation: rule_pack.export_default
+engine operation: rule_pack.update_rule
+operator command: rule-pack-load
+operator command: rule-pack-export-default
+operator command: rule-pack-update-rule
+Dashboard / Scan Folder / Results / Baseline / Rule Packs / History / About tabs
 ```
 
-The Baseline tab reads local trusted-baseline metadata only. It can list entries, filter entries, inspect details, copy SHA/path values, and compare two baseline JSON files. It does not open scanned files, execute files, delete files, quarantine files, or modify the baseline in v4.3.
+The Rule Packs tab reads local rule-pack metadata, validates rules, filters by enabled/type/search text, exports the public default rule pack to a local editable copy, and writes selected-rule edits to a rule-pack JSON copy. It does not open scanned files, execute files, delete files, quarantine files, or silently trust files.
 
 ## Quick local checks
 
@@ -29,24 +31,33 @@ python .\tools\privacy_leak_check.py --root .
 python .\pooleshield_operator.py desktop --status
 ```
 
-## Baseline Manager smoke test
+## Rule Pack Editor smoke test
 
 ```powershell
-python .\pooleshield_operator.py baseline-load `
-  --baseline C:\path\to\trusted_file_baseline.json `
-  --decision ALLOW_LOG `
+python .\pooleshield_operator.py rule-pack-load `
+  --rule-pack .\examples\rule_packs\file_av_rules.default.json `
+  --enabled enabled `
   --limit 25 `
-  --output .\baseline_response.json
+  --output .\rule_pack_response.json
 ```
 
-Compare two baseline files:
+Export an editable copy:
 
 ```powershell
-python .\pooleshield_operator.py baseline-diff `
-  --baseline-a C:\path\to\old_trusted_file_baseline.json `
-  --baseline-b C:\path\to\new_trusted_file_baseline.json `
-  --limit 25 `
-  --output .\baseline_diff_response.json
+python .\pooleshield_operator.py rule-pack-export-default `
+  --output .\local_rule_packs\file_av_rules.editable.json `
+  --force
+```
+
+Edit one rule into a copy:
+
+```powershell
+python .\pooleshield_operator.py rule-pack-update-rule `
+  --rule-pack .\local_rule_packs\file_av_rules.editable.json `
+  --output .\local_rule_packs\file_av_rules.edited.json `
+  --index 0 `
+  --disabled `
+  --risk-delta 0.10
 ```
 
 ## Install and launch the UI prototype
@@ -73,7 +84,7 @@ This command is still dry-run only. It does not execute, delete, quarantine, or 
 
 ## Privacy rules
 
-Privacy bundles exclude content-bearing/private files such as:
+Privacy bundles and repo commits must exclude content-bearing/private files such as:
 
 ```text
 normalized_events.jsonl
@@ -85,6 +96,10 @@ review_evidence_report.json
 trusted_file_baseline.json
 pooleshield_config.json
 local_history/*.sqlite
+local_rule_packs/
+rule_pack_response.json
+rule_pack_export_response.json
+rule_pack_update_response.json
 baseline_response.json
 baseline_diff_response.json
 results_response.json
@@ -98,3 +113,4 @@ The file AV scanner does not include raw file contents or matched snippets in it
 - `DESKTOP_UI_GUIDE.md` — Desktop prototype
 - `RESULTS_UI_GUIDE.md` — Results UI
 - `BASELINE_MANAGER_UI_GUIDE.md` — Baseline Manager UI
+- `RULE_PACK_EDITOR_UI_GUIDE.md` — Rule Pack Editor UI

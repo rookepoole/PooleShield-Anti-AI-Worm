@@ -1,11 +1,11 @@
 {
   "tool": "PooleShield",
-  "version": "4.3.0",
+  "version": "4.4.0",
   "release_type": "continuity_handoff",
   "last_updated": "2026-06-28",
   "mission": "Privacy-first, defensive, non-executing second-opinion scanner for suspicious files, archives, scripts, AI-agent logs, exported data bundles, and local workflow artifacts.",
-  "current_release": "v4.3",
-  "current_milestone": "Baseline Manager UI for local trusted baseline review",
+  "current_release": "v4.4",
+  "current_milestone": "Rule Pack Editor UI for local rule-pack validation and editing",
   "safety_boundary": {
     "allowed": [
       "read local files for static scanning",
@@ -16,6 +16,8 @@
       "load metadata-only scan results for UI review",
       "load metadata-only trusted baseline entries for UI review",
       "compare two local baseline JSON files by SHA256",
+      "load and validate local file-AV rule packs",
+      "write explicit operator-requested rule-pack JSON copies",
       "bundle privacy-safe results"
     ],
     "not_allowed": [
@@ -25,6 +27,7 @@
       "kill processes",
       "install hooks or drivers",
       "upload raw scanned contents by default",
+      "silently trust files from rule packs",
       "publish private Poole Math / Poole Manifold / Poole Defect Calculus IP"
     ]
   },
@@ -39,26 +42,32 @@
     "history.list",
     "history.show",
     "rule_pack.validate",
+    "rule_pack.load",
+    "rule_pack.export_default",
+    "rule_pack.update_rule",
     "file_av.scan_baseline",
     "results.load",
     "baseline.load",
     "baseline.diff"
   ],
-  "new_files_v4_3": [
-    "BASELINE_MANAGER_UI_GUIDE.md",
-    "updated pooleshield_engine.py baseline.load/baseline.diff",
-    "updated pooleshield_desktop.py Baseline tab",
+  "new_files_v4_4": [
+    "RULE_PACK_EDITOR_UI_GUIDE.md",
+    "updated file_av_rules.py rule-pack load/export/update helpers",
+    "updated pooleshield_engine.py rule_pack.load/rule_pack.export_default/rule_pack.update_rule",
+    "updated pooleshield_operator.py rule-pack-load/rule-pack-export-default/rule-pack-update-rule",
+    "updated pooleshield_desktop.py Rule Packs tab",
     "updated tests/test_engine_api.py",
     "updated tests/test_desktop_ui.py"
   ],
-  "new_commands_v4_3": [
-    "baseline-load",
-    "baseline-diff",
+  "new_commands_v4_4": [
+    "rule-pack-load",
+    "rule-pack-export-default",
+    "rule-pack-update-rule",
     "desktop",
     "desktop --status"
   ],
   "validated_prior_release": {
-    "latest_validated_release": "v4.2",
+    "latest_validated_release": "v4.3",
     "final_verdict": "CLEAN_AFTER_POLICY",
     "require_approval": 0,
     "block": 0,
@@ -66,5 +75,5 @@
     "history_record_scan_id": 1,
     "bundle_hash_mismatches": 0
   },
-  "current_next_best_move": "Test v4.3 locally with pytest, repo safety check, privacy leak check, desktop --status, baseline-load, baseline-diff, and a baseline-aware scan. Upload the generated privacy bundle before pushing v4.3."
+  "current_next_best_move": "Test v4.4 locally with pytest, repo safety check, privacy leak check, desktop --status, rule-pack-load/export/update, and a baseline-aware scan. Upload the generated privacy bundle before pushing v4.4."
 }
