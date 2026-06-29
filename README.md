@@ -116,3 +116,17 @@ v3.5 allows a reviewed archive hash in the local trusted baseline to cover its a
 ## v3.5 final scan summary
 
 Baseline-aware file AV scans now emit `FINAL_SCAN_SUMMARY.md/json` so operators can read one final effective verdict after rules and baselines are applied. Original scan decisions remain available for audit, but the final summary is the recommended first report.
+
+
+## CI safety checks
+
+PooleShield v3.6 includes GitHub Actions and a local repo safety checker.
+
+Before pushing, run:
+
+```powershell
+python -m pytest -q
+python .\tools\repo_safety_check.py --root .
+```
+
+The safety checker blocks private/generated artifacts such as scan outputs, result bundles, local baselines, decoded DAT text, normalized event JSONL, and local review evidence.

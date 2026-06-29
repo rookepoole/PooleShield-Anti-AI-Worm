@@ -1,5 +1,12 @@
 # Next Best Move
 
-Test PooleShield v3.5.1 locally with the baseline-aware rule-pack scan. Verify that `FINAL_SCAN_SUMMARY.md` reports the correct nonzero baseline-match count and `CLEAN_AFTER_POLICY` when the effective post-baseline state has no review/block/quarantine items.
+1. Run local tests:
 
-Then push v3.5.1 to GitHub.
+```powershell
+python -m pytest -q
+python .\tools\repo_safety_check.py --root .
+```
+
+2. If both pass, push v3.6 to GitHub.
+
+3. Next build after v3.6: v3.7 configuration system.

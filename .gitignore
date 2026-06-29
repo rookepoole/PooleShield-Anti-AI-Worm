@@ -9,3 +9,13 @@ extracted_dat_text/
 normalized_events.jsonl
 review_evidence_local.md
 review_evidence_report.json
+pooleshield_results_bundle.zip
+*_results_bundle.zip
+BUNDLE_MANIFEST.json
+PRIVACY_BUNDLE_NOTE.md
+trusted_file_baseline.*
+*.dat
+extracted_dat_content/
+extracted_text_like/
+.mypy_cache/
+.ruff_cache/

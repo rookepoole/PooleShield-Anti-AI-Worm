@@ -1,6 +1,6 @@
 {
   "tool": "PooleShield",
-  "version": "3.5.1",
+  "version": "3.6.0",
   "release_type": "continuity_handoff",
   "last_updated": "2026-06-28",
   "mission": "Defensive, non-executing AI-worm and prompt-contamination protection using Poole Math local-defect logic.",
