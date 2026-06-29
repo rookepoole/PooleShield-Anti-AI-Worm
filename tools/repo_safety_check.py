@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
 
-VERSION = "3.6.2"
+VERSION = "3.7.0"
 
 FORBIDDEN_DIR_NAMES = {
     "out",
@@ -42,6 +42,8 @@ FORBIDDEN_FILE_NAMES = {
     "trusted_file_baseline.json",
     "trusted_file_baseline.csv",
     "trusted_file_baseline.md",
+    "pooleshield_config.json",
+    ".pooleshield_config.json",
 }
 
 FORBIDDEN_SUFFIXES = {

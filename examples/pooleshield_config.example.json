@@ -1,0 +1,28 @@
+{
+  "tool": "PooleShield",
+  "version": "3.7.0",
+  "profile_name": "local-defaults",
+  "description": "Local PooleShield defaults. Keep machine-specific/private paths out of Git.",
+  "defaults": {
+    "output_root": "out",
+    "file_av_output_dir": "out/file_av_scan",
+    "file_av_baseline_scan_output_dir": "out/file_av_baseline_scan",
+    "rule_pack": "examples/rule_packs/file_av_rules.default.json",
+    "baseline": "local_trust/trusted_file_baseline.json",
+    "risk_profile": "standard",
+    "policy_profile": "balanced",
+    "privacy_bundle": true,
+    "bundle_output": false
+  },
+  "limits": {
+    "max_bytes_per_file": 5242880,
+    "max_archive_entries": 500,
+    "max_archive_entry_bytes": 2097152
+  },
+  "safety": {
+    "read_only": true,
+    "dry_run_only": true,
+    "do_not_execute_scanned_files": true,
+    "do_not_delete_or_quarantine_by_default": true
+  }
+}

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v3.6.2 operator CLI.
+PooleShield v3.7.0 operator CLI.
 
 Defensive purpose:
   Provide a real operator workflow for scanning folders/log exports, producing
@@ -36,8 +36,13 @@ from file_av_baseline import build_file_av_baseline, apply_file_av_baseline, Poo
 from file_av_baseline_scan import run_file_av_scan_with_baseline
 from file_av_rules import validate_rule_pack_file
 from file_av_final_summary import build_final_scan_summary
+from pooleshield_config import (
+    write_default_config, load_and_validate_config, validate_config,
+    resolve_file_av_baseline_scan_options, resolve_rule_pack_validate_options,
+    PooleShieldConfigError,
+)
 
-VERSION = "3.6.2"
+VERSION = "3.7.0"
 
 
 def policy_path_for(profile: str) -> str:
@@ -770,8 +775,19 @@ def run_dat_batch(
     return summary
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="PooleShield v3.0.1 real operator workflow")
+    parser = argparse.ArgumentParser(description="PooleShield v3.7 real operator workflow")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    config_init = sub.add_parser("config-init", help="Create a local PooleShield config JSON")
+    config_init.add_argument("--config", default="pooleshield_config.json", help="Config path to create")
+    config_init.add_argument("--force", action="store_true", help="Overwrite an existing config")
+
+    config_validate = sub.add_parser("config-validate", help="Validate a PooleShield config JSON")
+    config_validate.add_argument("--config", default=None, help="Config path. Default: auto-detect pooleshield_config.json or use built-in defaults")
+    config_validate.add_argument("--require-existing-paths", action="store_true", help="Warn if configured rule-pack/baseline paths do not exist yet")
+
+    config_show = sub.add_parser("config-show", help="Show effective PooleShield config after defaults are merged")
+    config_show.add_argument("--config", default=None, help="Config path. Default: auto-detect pooleshield_config.json or use built-in defaults")
 
     scan = sub.add_parser("scan", help="Scan real folders/log exports and create a review queue/template")
     scan.add_argument("--path", "-p", nargs="+", required=True, help="File/folder path(s) to scan")
@@ -986,16 +1002,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     file_av_scan_baseline_cmd = sub.add_parser("file-av-scan-baseline", help="Read-only file/folder AV scan with trusted baseline applied in one command")
     file_av_scan_baseline_cmd.add_argument("--path", "-p", nargs="+", required=True, help="File/folder/archive path(s) to scan")
-    file_av_scan_baseline_cmd.add_argument("--baseline", required=True, help="trusted_file_baseline.json path")
-    file_av_scan_baseline_cmd.add_argument("--output-dir", default="out/file_av_baseline_scan", help="Output folder")
+    file_av_scan_baseline_cmd.add_argument("--config", default=None, help="Optional PooleShield config JSON for local defaults")
+    file_av_scan_baseline_cmd.add_argument("--baseline", default=None, help="trusted_file_baseline.json path; can come from config defaults.baseline")
+    file_av_scan_baseline_cmd.add_argument("--output-dir", default=None, help="Output folder; default can come from config")
     file_av_scan_baseline_cmd.add_argument("--clean-output", action="store_true")
     file_av_scan_baseline_cmd.add_argument("--no-recursive", action="store_true")
     file_av_scan_baseline_cmd.add_argument("--include-hidden", action="store_true")
-    file_av_scan_baseline_cmd.add_argument("--max-bytes-per-file", type=int, default=5 * 1024 * 1024)
-    file_av_scan_baseline_cmd.add_argument("--max-archive-entries", type=int, default=500)
-    file_av_scan_baseline_cmd.add_argument("--max-archive-entry-bytes", type=int, default=2 * 1024 * 1024)
+    file_av_scan_baseline_cmd.add_argument("--max-bytes-per-file", type=int, default=None)
+    file_av_scan_baseline_cmd.add_argument("--max-archive-entries", type=int, default=None)
+    file_av_scan_baseline_cmd.add_argument("--max-archive-entry-bytes", type=int, default=None)
     file_av_scan_baseline_cmd.add_argument("--no-archives", action="store_true")
-    file_av_scan_baseline_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default="standard")
+    file_av_scan_baseline_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default=None)
     file_av_scan_baseline_cmd.add_argument("--rule-pack", default=None, help="Optional local JSON rule pack for extra static file-AV labels/risk deltas")
     file_av_scan_baseline_cmd.add_argument("--bundle-output", action="store_true")
     file_av_scan_baseline_cmd.add_argument("--bundle-path", default=None)
@@ -1028,8 +1045,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     file_av_apply_baseline_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
 
     rule_pack_cmd = sub.add_parser("rule-pack-validate", help="Validate a local file-AV JSON rule pack")
-    rule_pack_cmd.add_argument("--rule-pack", required=True, help="Rule pack JSON path")
-    rule_pack_cmd.add_argument("--output-dir", default="out/rule_pack_validate")
+    rule_pack_cmd.add_argument("--config", default=None, help="Optional PooleShield config JSON for local defaults")
+    rule_pack_cmd.add_argument("--rule-pack", default=None, help="Rule pack JSON path; can come from config defaults.rule_pack")
+    rule_pack_cmd.add_argument("--output-dir", default=None)
     rule_pack_cmd.add_argument("--clean-output", action="store_true")
     rule_pack_cmd.add_argument("--bundle-output", action="store_true")
     rule_pack_cmd.add_argument("--bundle-path", default=None)
@@ -1041,6 +1059,29 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     bundle_cmd.add_argument("--privacy-bundle", action="store_true", help="Exclude content-bearing normalized event JSONL from bundle")
 
     args = parser.parse_args(argv)
+    if args.command == "config-init":
+        summary = write_default_config(args.config, force=args.force)
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0
+    if args.command == "config-validate":
+        cfg, config_path, validation = load_and_validate_config(args.config, require_existing_paths=args.require_existing_paths)
+        summary = validation
+        summary["effective_config"] = cfg
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0 if summary.get("valid") else 2
+    if args.command == "config-show":
+        cfg, config_path, validation = load_and_validate_config(args.config)
+        summary = {
+            "tool": "PooleShield config show",
+            "version": VERSION,
+            "config_path": str(config_path) if config_path else None,
+            "used_config_file": config_path is not None,
+            "validation": validation,
+            "effective_config": cfg,
+        }
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0
+
     if args.command == "scan":
         summary = run_pipeline(
             paths=args.path,
@@ -1238,23 +1279,26 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
 
     elif args.command == "file-av-scan-baseline":
+        resolved = resolve_file_av_baseline_scan_options(args)
         summary = run_file_av_scan_with_baseline(
             paths=args.path,
-            baseline=args.baseline,
-            output_dir=args.output_dir,
+            baseline=resolved["baseline"],
+            output_dir=resolved["output_dir"],
             clean_output=args.clean_output,
             recursive=not args.no_recursive,
             include_hidden=args.include_hidden,
-            max_bytes_per_file=args.max_bytes_per_file,
-            max_archive_entries=args.max_archive_entries,
-            max_archive_entry_bytes=args.max_archive_entry_bytes,
+            max_bytes_per_file=resolved["max_bytes_per_file"],
+            max_archive_entries=resolved["max_archive_entries"],
+            max_archive_entry_bytes=resolved["max_archive_entry_bytes"],
             scan_archives=not args.no_archives,
-            risk_profile=args.risk_profile,
-            rule_pack=getattr(args, "rule_pack", None),
+            risk_profile=resolved["risk_profile"],
+            rule_pack=resolved["rule_pack"],
             bundle_output=args.bundle_output,
             bundle_path=args.bundle_path,
             privacy_bundle=args.privacy_bundle,
         )
+        summary["config_summary"] = resolved.get("config_summary")
+        write_json(str(Path(summary["output_dir"]) / "RUN_SUMMARY_FILE_AV_BASELINE_SCAN.json"), summary)
 
     elif args.command == "file-av-final-summary":
         summary = build_final_scan_summary(
@@ -1289,10 +1333,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             privacy_bundle=args.privacy_bundle,
         )
     elif args.command == "rule-pack-validate":
-        out = ensure_output_dir(args.output_dir, clean=args.clean_output)
-        summary = validate_rule_pack_file(args.rule_pack)
+        resolved_rule = resolve_rule_pack_validate_options(args)
+        out = ensure_output_dir(resolved_rule["output_dir"], clean=args.clean_output)
+        summary = validate_rule_pack_file(resolved_rule["rule_pack"])
         summary["mode"] = "rule-pack-validate"
         summary["output_dir"] = str(out)
+        summary["config_summary"] = resolved_rule.get("config_summary")
         report_path = out / "rule_pack_validation.json"
         write_json(str(report_path), summary)
         md = out / "rule_pack_validation.md"
@@ -1331,7 +1377,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 if __name__ == "__main__":  # pragma: no cover
     try:
         raise SystemExit(main())
-    except PooleShieldUserError as exc:
+    except (PooleShieldUserError, PooleShieldConfigError) as exc:
         print(f"PooleShield setup error: {exc}")
         raise SystemExit(2)
     except FileNotFoundError as exc:

@@ -19,3 +19,5 @@ extracted_dat_content/
 extracted_text_like/
 .mypy_cache/
 .ruff_cache/
+pooleshield_config.json
+.pooleshield_config.json

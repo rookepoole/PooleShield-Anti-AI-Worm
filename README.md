@@ -130,3 +130,27 @@ python .\tools\repo_safety_check.py --root .
 ```
 
 The safety checker blocks private/generated artifacts such as scan outputs, result bundles, local baselines, decoded DAT text, normalized event JSONL, and local review evidence.
+
+## v3.7 local configuration
+
+PooleShield v3.7 adds a local config file so repeated commands do not need to restate baseline, rule-pack, output, risk-profile, privacy-bundle, and scan-limit defaults.
+
+Create a local config:
+
+```powershell
+python .\pooleshield_operator.py config-init --config .\pooleshield_config.json
+python .\pooleshield_operator.py config-validate --config .\pooleshield_config.json
+```
+
+Use config with the baseline-aware file AV scan:
+
+```powershell
+python .\pooleshield_operator.py file-av-scan-baseline `
+  --config .\pooleshield_config.json `
+  --path "$env:USERPROFILE\Desktop\PooleShieldRealScanSmall" `
+  --clean-output `
+  --bundle-output `
+  --privacy-bundle
+```
+
+Local `pooleshield_config.json` files are ignored by Git because they may contain machine-specific baseline paths. Use `examples/pooleshield_config.example.json` as the public-safe reference.
