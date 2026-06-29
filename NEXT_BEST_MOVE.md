@@ -1,12 +1,14 @@
 # Next Best Move
 
-1. Run local tests:
+1. Push v3.6.1 to fix the GitHub Actions CI bootstrap.
+
+2. Confirm GitHub Actions passes on `main`.
+
+3. Begin v3.7 configuration system.
+
+Local pre-push check:
 
 ```powershell
 python -m pytest -q
 python .\tools\repo_safety_check.py --root .
 ```
-
-2. If both pass, push v3.6 to GitHub.
-
-3. Next build after v3.6: v3.7 configuration system.

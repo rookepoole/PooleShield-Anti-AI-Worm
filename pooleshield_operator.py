@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v3.6.0 operator CLI.
+PooleShield v3.6.1 operator CLI.
 
 Defensive purpose:
   Provide a real operator workflow for scanning folders/log exports, producing
@@ -37,7 +37,7 @@ from file_av_baseline_scan import run_file_av_scan_with_baseline
 from file_av_rules import validate_rule_pack_file
 from file_av_final_summary import build_final_scan_summary
 
-VERSION = "3.6.0"
+VERSION = "3.6.1"
 
 
 def policy_path_for(profile: str) -> str:
