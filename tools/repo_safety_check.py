@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
 
-VERSION = "5.1.1"
+VERSION = "5.2.0"
 
 FORBIDDEN_DIR_NAMES = {
     "out",
@@ -32,6 +32,11 @@ FORBIDDEN_DIR_NAMES = {
     "installer_output",
     "installer_release",
     "installer_scripts",
+    "installer_build_verify",
+    "installer_install_uninstall_smoke_verify",
+    "release_output",
+    "release_artifacts",
+    "release_verify",
     ".venv-build",
     "extracted_dat_text",
     "extracted_dat_content",
@@ -69,6 +74,10 @@ FORBIDDEN_FILE_NAMES = {
     "installer_build_plan.json",
     "installer_build_result.json",
     "installer_compile_result.json",
+    "release_manifest.json",
+    "release_manifest_response.json",
+    "release_status_response.json",
+    "release_notes_draft.md",
     "PooleShield.exe",
 }
 

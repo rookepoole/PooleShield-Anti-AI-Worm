@@ -1,6 +1,6 @@
-# PooleShield v5.1.1 Rule Pack Editor UI Guide
+# PooleShield v5.2.0 Rule Pack Editor UI Guide
 
-PooleShield v5.1.1 adds the first local Rule Pack Editor UI on top of the v4.0 Engine API and the v4.1-v4.3 desktop UI stack.
+PooleShield v5.2.0 adds the first local Rule Pack Editor UI on top of the v4.0 Engine API and the v4.1-v4.3 desktop UI stack.
 
 The Rule Pack Editor is local and defensive:
 

@@ -1,11 +1,11 @@
 {
   "tool": "PooleShield",
-  "version": "5.1.1",
+  "version": "5.2.0",
   "release_type": "continuity_handoff",
   "last_updated": "2026-06-28",
   "mission": "Privacy-first, defensive, non-executing second-opinion scanner for suspicious files, archives, scripts, AI-agent logs, exported data bundles, and local workflow artifacts.",
-  "current_release": "v5.1.1",
-  "current_milestone": "Windows installer tooling path",
+  "current_release": "v5.2",
+  "current_milestone": "Release packaging and integrity manifest path",
   "safety_boundary": {
     "allowed": [
       "read local files for static scanning",
@@ -18,7 +18,10 @@
       "compare two local baseline JSON files by SHA256",
       "load and validate local file-AV rule packs",
       "write explicit operator-requested rule-pack JSON copies",
-      "bundle privacy-safe results"
+      "bundle privacy-safe results",
+      "write metadata-only release manifests",
+      "write release-notes drafts",
+      "hash release artifacts without copying/executing them"
     ],
     "not_allowed": [
       "execute scanned files",
@@ -28,7 +31,9 @@
       "install hooks or drivers",
       "upload raw scanned contents by default",
       "silently trust files from rule packs",
-      "publish private Poole Math / Poole Manifold / Poole Defect Calculus IP"
+      "publish private Poole Math / Poole Manifold / Poole Defect Calculus IP",
+      "commit installer executables or portable build folders",
+      "commit generated release manifest responses or verification ZIPs"
     ]
   },
   "engine_operations": [
@@ -50,7 +55,11 @@
     "file_av.scan_baseline",
     "results.load",
     "baseline.load",
-    "baseline.diff"
+    "baseline.diff",
+    "installer.status",
+    "installer.plan",
+    "release.status",
+    "release.manifest"
   ],
   "new_files_v5_0": [
     "pooleshield_portable_launcher.py",
@@ -68,7 +77,7 @@
     "portable-build --run-pyinstaller"
   ],
   "validated_prior_release": {
-    "latest_validated_release": "v4.4",
+    "latest_validated_release": "v5.1.1",
     "final_verdict": "CLEAN_AFTER_POLICY",
     "require_approval": 0,
     "block": 0,
@@ -76,7 +85,7 @@
     "history_record_scan_id": 1,
     "bundle_hash_mismatches": 0
   },
-  "current_next_best_move": "Test v5.1.1 locally with pytest, repo safety check, privacy leak check, installer-build status/dry-run/write-script, and a baseline-aware scan. Upload the generated privacy bundle before pushing v5.1.1.",
+  "current_next_best_move": "Test v5.2 locally with pytest, repo safety check, privacy leak check, and release-manifest against the verified portable folder and installer executable. Upload metadata-only release-manifest verification ZIP before pushing v5.2.",
   "new_files_v5_1": [
     "installer_build.py",
     "build_installer_windows.ps1",
@@ -90,5 +99,15 @@
     "installer-build --dry-run",
     "installer-build --write-script",
     "installer-build --run-iscc"
+  ],
+  "new_files_v5_2": [
+    "release_manifest.py",
+    "RELEASE_PACKAGING_GUIDE.md",
+    "tests/test_release_manifest.py"
+  ],
+  "new_commands_v5_2": [
+    "release-manifest",
+    "release-manifest --status",
+    "release-manifest --notes-output"
   ]
 }

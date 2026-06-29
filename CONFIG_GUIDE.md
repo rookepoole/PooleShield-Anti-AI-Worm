@@ -1,6 +1,6 @@
 # PooleShield Configuration Guide
 
-Version: 5.1.1
+Version: 5.2.0
 
 PooleShield v3.8 adds a local JSON configuration system so operators do not need to repeat baseline, rule-pack, output, risk-profile, and privacy defaults on every command.
 

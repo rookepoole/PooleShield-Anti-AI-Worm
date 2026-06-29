@@ -1,4 +1,4 @@
-PooleShield v5.1.1 local test commands
+PooleShield v5.2.0 local test commands
 =====================================
 
 1) Extract the package, then open PowerShell in the package folder.
@@ -17,7 +17,7 @@ python .\pooleshield_operator.py portable-build --dry-run --output .\portable_bu
 python .\pooleshield_operator.py portable-build --write-spec --force
 python .\pooleshield_portable_launcher.py --status
 
-4) If using the CLI for a reproducible v5.1.1 scan bundle:
+4) If using the CLI for a reproducible v5.2.0 scan bundle:
 
 python .\pooleshield_operator.py file-av-scan-baseline `
   --config .\pooleshield_config.json `

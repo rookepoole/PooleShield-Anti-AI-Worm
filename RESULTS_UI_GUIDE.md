@@ -1,8 +1,8 @@
-# PooleShield v5.1.1 Results UI Guide
+# PooleShield v5.2.0 Results UI Guide
 
-Version: 5.1.1
+Version: 5.2.0
 
-PooleShield v5.1.1 adds a metadata-only Results UI for reviewing scan output without opening scanned files.
+PooleShield v5.2.0 adds a metadata-only Results UI for reviewing scan output without opening scanned files.
 
 ## What changed
 

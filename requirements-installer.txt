@@ -1,3 +1,3 @@
-# PooleShield v5.1.1 installer build uses Inno Setup on Windows.
+# PooleShield v5.2.0 installer build uses Inno Setup on Windows.
 # No Python package dependency is required for installer script generation.
 # Install Inno Setup 6 separately to compile the .iss script into an installer .exe.

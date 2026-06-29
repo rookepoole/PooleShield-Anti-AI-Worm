@@ -56,3 +56,16 @@ installer_build_plan.json
 installer_build_result.json
 installer_compile_result.json
 *.iss
+
+# release packaging artifacts
+release_output/
+release_artifacts/
+release_verify/
+installer_install_uninstall_smoke_verify/
+release_manifest.json
+release_manifest_response.json
+release_status_response.json
+release_notes_draft.md
+RELEASE_NOTES_v*.md
+*_release_manifest_verification.zip
+*_install_uninstall_smoke_verification.zip

@@ -23,7 +23,7 @@ from file_av_baseline import apply_file_av_baseline, norm_list
 from result_bundler import bundle_output_dir
 from file_av_final_summary import build_final_scan_summary
 
-VERSION = "5.1.1"
+VERSION = "5.2.0"
 REVIEW_DECISIONS = {"REQUIRE_APPROVAL", "BLOCK", "QUARANTINE"}
 
 

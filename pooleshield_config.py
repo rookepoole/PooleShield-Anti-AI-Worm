@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-VERSION = "5.1.1"
+VERSION = "5.2.0"
 CONFIG_FILENAMES = ("pooleshield_config.json", ".pooleshield_config.json")
 RISK_PROFILES = {"standard", "developer"}
 POLICY_PROFILES = {"balanced", "strict"}

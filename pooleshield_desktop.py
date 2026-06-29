@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PooleShield v5.1.1 desktop UI prototype.
+"""PooleShield v5.2.0 desktop UI prototype.
 
 Defensive purpose:
   Provide a local desktop dashboard, results-review UI, and baseline-manager UI for the PooleShield Engine API.
@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Sequence
 
 from pooleshield_engine import VERSION as ENGINE_VERSION, dispatch
 
-VERSION = "5.1.1"
+VERSION = "5.2.0"
 
 try:  # PySide6 is optional so core tests and CLI usage stay dependency-light.
     from PySide6.QtCore import QObject, QThread, Signal, Qt  # type: ignore
@@ -226,7 +226,7 @@ def build_file_av_scan_request(
 
 
 def summarize_results_response(response: Dict[str, Any]) -> str:
-    """Summarize metadata-only loaded results for the v5.1.1 results tab."""
+    """Summarize metadata-only loaded results for the v5.2.0 results tab."""
     if not response.get("ok"):
         return f"ERROR [{response.get('error_type')}]: {response.get('error')}"
     result = response.get("result", {})

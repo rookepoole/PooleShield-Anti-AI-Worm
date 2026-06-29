@@ -44,7 +44,7 @@ from scan_history import (
 )
 from scan_profiles import ScanProfileError, get_scan_profile, profile_catalog
 
-VERSION = "5.1.1"
+VERSION = "5.2.0"
 ENGINE_API_VERSION = "1"
 
 SUPPORTED_OPERATIONS = (
@@ -65,6 +65,8 @@ SUPPORTED_OPERATIONS = (
     "portable.plan",
     "installer.status",
     "installer.plan",
+    "release.status",
+    "release.manifest",
     "file_av.scan_baseline",
     "results.load",
     "baseline.load",
@@ -201,6 +203,31 @@ def installer_plan(
     from installer_build import installer_plan as _installer_plan
     summary = _installer_plan(root=root, portable_dir=portable_dir, output_dir=output_dir, script_path=script_path, app_name=app_name, app_version=app_version, publisher=publisher, installer_basename=installer_basename)
     return _with_engine_metadata(summary, "installer.plan")
+
+
+
+
+def release_status(
+    root: str = ".",
+    portable_dir: Optional[str] = None,
+    installer_path: Optional[str] = None,
+    app_name: str = "PooleShield",
+) -> Dict[str, Any]:
+    from release_manifest import release_status as _release_status
+    summary = _release_status(root=root, portable_dir=portable_dir, installer_path=installer_path, app_name=app_name)
+    return _with_engine_metadata(summary, "release.status")
+
+
+def release_manifest(
+    root: str = ".",
+    release_version: str = VERSION,
+    portable_dir: Optional[str] = None,
+    installer_path: Optional[str] = None,
+    app_name: str = "PooleShield",
+) -> Dict[str, Any]:
+    from release_manifest import build_release_manifest
+    summary = build_release_manifest(root=root, release_version=release_version, portable_dir=portable_dir, installer_path=installer_path, app_name=app_name)
+    return _with_engine_metadata(summary, "release.manifest")
 
 
 def _resolve_history_db(config: Optional[str] = None, history_db: Optional[str] = None) -> str:
@@ -525,7 +552,7 @@ def results_load(
     text: Optional[str] = None,
     limit: int = 500,
 ) -> Dict[str, Any]:
-    """Load metadata-only scan results for the v5.1.1 Results UI.
+    """Load metadata-only scan results for the v5.2.0 Results UI.
 
     This reads PooleShield output JSON reports only. It does not open scanned
     files, execute anything, modify the scanned corpus, or include matched file
@@ -795,6 +822,8 @@ def dispatch(request: Dict[str, Any]) -> Dict[str, Any]:
         "portable.plan": portable_plan,
         "installer.status": installer_status,
         "installer.plan": installer_plan,
+        "release.status": release_status,
+        "release.manifest": release_manifest,
         "file_av.scan_baseline": file_av_scan_baseline,
         "results.load": results_load,
         "baseline.load": baseline_load,

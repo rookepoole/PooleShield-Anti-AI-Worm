@@ -27,3 +27,20 @@ C:\Users\rookp\pooleshield_v0_9_package\pooleshield_v0_9_package\pooleshield_cyc
 ```
 
 If nested extraction happens, delete the outer folder and rerun the install commands from `INSTALL_WINDOWS.md`.
+
+## v5.2 release packaging outputs
+
+Generated release manifest files and release-note drafts are local artifacts. Do not commit these by default:
+
+```text
+release_manifest.json
+release_manifest_response.json
+release_status_response.json
+release_notes_draft.md
+release_output/
+release_artifacts/
+release_verify/
+*_release_manifest_verification.zip
+```
+
+They are safe for review when intentionally uploaded because they contain metadata and hashes only, not installer bytes, portable app bytes, scanned file contents, local configs, trusted baselines, or scan-history databases.

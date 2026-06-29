@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PooleShield v5.1.1 Windows installer helper.
+"""PooleShield v5.2.0 Windows installer helper.
 
 Defensive purpose:
   Generate and optionally compile a local Inno Setup installer script for the
@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
-VERSION = "5.1.1"
+VERSION = "5.2.0"
 DEFAULT_APP_NAME = "PooleShield"
 DEFAULT_APP_VERSION = VERSION
 DEFAULT_PUBLISHER = "Rooke Poole"
@@ -332,7 +332,7 @@ def run_iscc(
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="Build/status helper for PooleShield v5.1.1 Windows installer.")
+    parser = argparse.ArgumentParser(description="Build/status helper for PooleShield v5.2.0 Windows installer.")
     parser.add_argument("--root", default=".")
     parser.add_argument("--portable-dir", default=DEFAULT_PORTABLE_DIR)
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)

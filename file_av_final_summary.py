@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
-VERSION = "5.1.1"
+VERSION = "5.2.0"
 ACTIONABLE = {"REQUIRE_APPROVAL", "BLOCK", "QUARANTINE"}
 HIGH_SEVERITY = {"BLOCK", "QUARANTINE"}
 
