@@ -48,3 +48,11 @@ portable_build_result.json
 *.msi
 *.msix
 *.spec
+installer_build/
+installer_output/
+installer_release/
+installer_scripts/
+installer_build_plan.json
+installer_build_result.json
+installer_compile_result.json
+*.iss

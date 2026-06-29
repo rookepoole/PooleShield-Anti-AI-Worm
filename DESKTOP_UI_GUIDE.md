@@ -1,8 +1,8 @@
 # PooleShield Desktop UI Guide
 
-Version: 5.0.0
+Version: 5.1.0
 
-PooleShield v5.0 provides a local desktop prototype on top of the Engine API with Results, Baseline Manager, and Rule Pack Editor tabs.
+PooleShield v5.1 provides a local desktop prototype on top of the Engine API with Results, Baseline Manager, and Rule Pack Editor tabs.
 
 The UI is still defensive and local-only:
 
@@ -40,7 +40,7 @@ Or launch through the operator CLI:
 python .\pooleshield_operator.py desktop
 ```
 
-## Screens in v5.0
+## Screens in v5.1
 
 - Dashboard: validate config and list scan profiles.
 - Scan Folder: run a baseline-aware folder scan using the Engine API.
@@ -71,13 +71,13 @@ python .\pooleshield_operator.py desktop
 The default UI scan output is:
 
 ```text
-out/file_av_desktop_v5_0/
+out/file_av_desktop_v5_1/
 ```
 
 Upload only the generated privacy bundle if you want review:
 
 ```text
-out/file_av_desktop_v5_0/pooleshield_results_bundle.zip
+out/file_av_desktop_v5_1/pooleshield_results_bundle.zip
 ```
 
 Do not commit local config, local history DBs, baselines, local edited rule packs, output folders, or result bundles.
@@ -85,4 +85,4 @@ Do not commit local config, local history DBs, baselines, local edited rule pack
 
 ## Portable Windows build
 
-v5.0 adds a portable build helper. The desktop app can be launched from source with `python .\pooleshield_operator.py desktop` or packaged locally with `python .\pooleshield_operator.py portable-build --run-pyinstaller --clean`. Generated `dist/` and `build/` folders are local artifacts and must not be committed.
+v5.1 adds a portable build helper. The desktop app can be launched from source with `python .\pooleshield_operator.py desktop` or packaged locally with `python .\pooleshield_operator.py portable-build --run-pyinstaller --clean`. Generated `dist/` and `build/` folders are local artifacts and must not be committed.

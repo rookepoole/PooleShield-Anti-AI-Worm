@@ -1,11 +1,11 @@
 {
   "tool": "PooleShield",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "release_type": "continuity_handoff",
   "last_updated": "2026-06-28",
   "mission": "Privacy-first, defensive, non-executing second-opinion scanner for suspicious files, archives, scripts, AI-agent logs, exported data bundles, and local workflow artifacts.",
-  "current_release": "v5.0",
-  "current_milestone": "Portable Windows build path",
+  "current_release": "v5.1",
+  "current_milestone": "Windows installer tooling path",
   "safety_boundary": {
     "allowed": [
       "read local files for static scanning",
@@ -76,5 +76,19 @@
     "history_record_scan_id": 1,
     "bundle_hash_mismatches": 0
   },
-  "current_next_best_move": "Test v5.0 locally with pytest, repo safety check, privacy leak check, desktop --status, portable-build status/dry-run/write-spec, and a baseline-aware scan. Upload the generated privacy bundle before pushing v5.0."
+  "current_next_best_move": "Test v5.1 locally with pytest, repo safety check, privacy leak check, installer-build status/dry-run/write-script, and a baseline-aware scan. Upload the generated privacy bundle before pushing v5.1.",
+  "new_files_v5_1": [
+    "installer_build.py",
+    "build_installer_windows.ps1",
+    "requirements-installer.txt",
+    "WINDOWS_INSTALLER_BUILD_GUIDE.md",
+    "tests/test_installer_build.py"
+  ],
+  "new_commands_v5_1": [
+    "installer-build",
+    "installer-build --status",
+    "installer-build --dry-run",
+    "installer-build --write-script",
+    "installer-build --run-iscc"
+  ]
 }

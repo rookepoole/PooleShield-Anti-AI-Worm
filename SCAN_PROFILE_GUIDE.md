@@ -1,6 +1,6 @@
 # PooleShield Scan Profile Guide
 
-Version: 5.0.0
+Version: 5.1.0
 
 PooleShield v3.8 adds named file-AV scan profiles. Profiles tune scan breadth and limits while preserving the same safety boundary: read-only, dry-run only, no execution, no deletion, no quarantine, no process killing, no hooks, and no drivers.
 

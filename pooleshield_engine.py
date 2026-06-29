@@ -44,7 +44,7 @@ from scan_history import (
 )
 from scan_profiles import ScanProfileError, get_scan_profile, profile_catalog
 
-VERSION = "5.0.0"
+VERSION = "5.1.0"
 ENGINE_API_VERSION = "1"
 
 SUPPORTED_OPERATIONS = (
@@ -63,6 +63,8 @@ SUPPORTED_OPERATIONS = (
     "rule_pack.update_rule",
     "portable.status",
     "portable.plan",
+    "installer.status",
+    "installer.plan",
     "file_av.scan_baseline",
     "results.load",
     "baseline.load",
@@ -177,6 +179,28 @@ def portable_plan(
     from portable_build import build_plan
     summary = build_plan(root=root, spec_path=spec_path, app_name=app_name, entry=entry, dist_dir=dist_dir, work_dir=work_dir, windowed=windowed, clean=clean)
     return _with_engine_metadata(summary, "portable.plan")
+
+
+
+def installer_status(root: str = ".", portable_dir: str = "dist/PooleShield", app_name: str = "PooleShield") -> Dict[str, Any]:
+    from installer_build import installer_status as _installer_status
+    summary = _installer_status(root=root, portable_dir=portable_dir, app_name=app_name)
+    return _with_engine_metadata(summary, "installer.status")
+
+
+def installer_plan(
+    root: str = ".",
+    portable_dir: str = "dist/PooleShield",
+    output_dir: str = "installer_output",
+    script_path: str = "build/installer/PooleShield.iss",
+    app_name: str = "PooleShield",
+    app_version: str = VERSION,
+    publisher: str = "Rooke Poole",
+    installer_basename: str = "PooleShieldSetup",
+) -> Dict[str, Any]:
+    from installer_build import installer_plan as _installer_plan
+    summary = _installer_plan(root=root, portable_dir=portable_dir, output_dir=output_dir, script_path=script_path, app_name=app_name, app_version=app_version, publisher=publisher, installer_basename=installer_basename)
+    return _with_engine_metadata(summary, "installer.plan")
 
 
 def _resolve_history_db(config: Optional[str] = None, history_db: Optional[str] = None) -> str:
@@ -501,7 +525,7 @@ def results_load(
     text: Optional[str] = None,
     limit: int = 500,
 ) -> Dict[str, Any]:
-    """Load metadata-only scan results for the v5.0 Results UI.
+    """Load metadata-only scan results for the v5.1 Results UI.
 
     This reads PooleShield output JSON reports only. It does not open scanned
     files, execute anything, modify the scanned corpus, or include matched file
@@ -630,7 +654,7 @@ def baseline_load(
     text: Optional[str] = None,
     limit: int = 500,
 ) -> Dict[str, Any]:
-    """Load a local trusted-hash baseline as metadata-only rows for v5.0.
+    """Load a local trusted-hash baseline as metadata-only rows for v5.1.
 
     This reads only the local trusted baseline JSON. It does not open, execute,
     modify, delete, quarantine, or trust any scanned files.
@@ -769,6 +793,8 @@ def dispatch(request: Dict[str, Any]) -> Dict[str, Any]:
         "rule_pack.update_rule": rule_pack_update_rule,
         "portable.status": portable_status,
         "portable.plan": portable_plan,
+        "installer.status": installer_status,
+        "installer.plan": installer_plan,
         "file_av.scan_baseline": file_av_scan_baseline,
         "results.load": results_load,
         "baseline.load": baseline_load,

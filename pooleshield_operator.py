@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v5.0.0 operator CLI.
+PooleShield v5.1.0 operator CLI.
 
 Defensive purpose:
   Provide a real operator workflow for scanning folders/log exports, producing
@@ -47,7 +47,7 @@ from scan_history import (
 )
 import pooleshield_engine as engine
 
-VERSION = "5.0.0"
+VERSION = "5.1.0"
 
 
 def policy_path_for(profile: str) -> str:
@@ -780,7 +780,7 @@ def run_dat_batch(
     return summary
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="PooleShield v5.0 real operator workflow, desktop prototype, and portable Windows build helper")
+    parser = argparse.ArgumentParser(description="PooleShield v5.1 real operator workflow, desktop prototype, and portable Windows build helper")
     sub = parser.add_subparsers(dest="command", required=True)
 
     config_init = sub.add_parser("config-init", help="Create a local PooleShield config JSON")
@@ -1073,7 +1073,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     rule_pack_cmd.add_argument("--bundle-path", default=None)
     rule_pack_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
 
-    rule_pack_load_cmd = sub.add_parser("rule-pack-load", help="Load metadata-only rule pack entries for the v5.0 Rule Pack Editor UI")
+    rule_pack_load_cmd = sub.add_parser("rule-pack-load", help="Load metadata-only rule pack entries for the v5.1 Rule Pack Editor UI")
     rule_pack_load_cmd.add_argument("--rule-pack", required=True, help="Local file-AV rule pack JSON path")
     rule_pack_load_cmd.add_argument("--enabled", default="ANY", help="ANY, enabled, or disabled")
     rule_pack_load_cmd.add_argument("--type", dest="type_filter", default="", help="Optional rule type substring filter")
@@ -1130,7 +1130,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     engine_cmd.add_argument("--request", required=True, help="JSON request file with operation and params")
     engine_cmd.add_argument("--output", default=None, help="Optional path to write the JSON response")
 
-    results_load_cmd = sub.add_parser("results-load", help="Load metadata-only scan results for the v5.0 Results UI")
+    results_load_cmd = sub.add_parser("results-load", help="Load metadata-only scan results for the v5.1 Results UI")
     results_load_cmd.add_argument("--output-dir", required=True, help="Existing PooleShield output folder")
     results_load_cmd.add_argument("--decision", default="ANY", help="Optional effective decision filter")
     results_load_cmd.add_argument("--label", default="", help="Optional label substring filter")
@@ -1138,7 +1138,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     results_load_cmd.add_argument("--limit", type=int, default=500, help="Maximum metadata rows to return")
     results_load_cmd.add_argument("--output", default=None, help="Optional path to write JSON response")
 
-    baseline_load_cmd = sub.add_parser("baseline-load", help="Load metadata-only trusted baseline entries for the v5.0 Baseline Manager UI")
+    baseline_load_cmd = sub.add_parser("baseline-load", help="Load metadata-only trusted baseline entries for the v5.1 Baseline Manager UI")
     baseline_load_cmd.add_argument("--baseline", required=True, help="Local trusted_file_baseline.json path")
     baseline_load_cmd.add_argument("--decision", default="ANY", help="Optional trusted decision filter")
     baseline_load_cmd.add_argument("--kind", default="", help="Optional kind substring filter")
@@ -1152,11 +1152,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     baseline_diff_cmd.add_argument("--limit", type=int, default=500, help="Maximum entries per diff bucket to return")
     baseline_diff_cmd.add_argument("--output", default=None, help="Optional path to write JSON response")
 
-    desktop_cmd = sub.add_parser("desktop", help="Launch the v5.0 local desktop UI prototype")
+    desktop_cmd = sub.add_parser("desktop", help="Launch the v5.1 local desktop UI prototype")
     desktop_cmd.add_argument("--status", action="store_true", help="Print desktop dependency status instead of launching UI")
 
 
-    portable_cmd = sub.add_parser("portable-build", help="Plan or run the v5.0 portable Windows PyInstaller build")
+    portable_cmd = sub.add_parser("portable-build", help="Plan or run the v5.1 portable Windows PyInstaller build")
     portable_cmd.add_argument("--status", action="store_true", help="Print portable build dependency/source status")
     portable_cmd.add_argument("--dry-run", action="store_true", help="Print build plan without writing spec or running PyInstaller")
     portable_cmd.add_argument("--write-spec", action="store_true", help="Write a local PyInstaller spec file")
@@ -1170,6 +1170,21 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     portable_cmd.add_argument("--work-dir", default="build/pyinstaller", help="PyInstaller work directory")
     portable_cmd.add_argument("--console", action="store_true", help="Build console app instead of windowed app")
     portable_cmd.add_argument("--output", default=None, help="Optional JSON output path")
+
+    installer_cmd = sub.add_parser("installer-build", help="Plan or run the v5.1 Windows installer build")
+    installer_cmd.add_argument("--status", action="store_true", help="Print installer build/source status")
+    installer_cmd.add_argument("--dry-run", action="store_true", help="Print installer build plan without writing script or running ISCC")
+    installer_cmd.add_argument("--write-script", action="store_true", help="Write a local Inno Setup .iss script")
+    installer_cmd.add_argument("--run-iscc", action="store_true", help="Run Inno Setup compiler locally after writing/using the script")
+    installer_cmd.add_argument("--force", action="store_true", help="Overwrite generated installer script if writing one")
+    installer_cmd.add_argument("--portable-dir", default="dist/PooleShield", help="Portable app folder to install")
+    installer_cmd.add_argument("--script-path", default="build/installer/PooleShield.iss", help="Generated Inno Setup script path")
+    installer_cmd.add_argument("--output-dir", default="installer_output", help="Generated installer output directory")
+    installer_cmd.add_argument("--name", default="PooleShield", help="Installed application name")
+    installer_cmd.add_argument("--app-version", default=VERSION, help="Installer application version")
+    installer_cmd.add_argument("--publisher", default="Rooke Poole", help="Installer publisher string")
+    installer_cmd.add_argument("--installer-basename", default="PooleShieldSetup", help="Output installer base filename")
+    installer_cmd.add_argument("--output", default=None, help="Optional JSON output path")
 
     bundle_cmd = sub.add_parser("bundle", help="Bundle an existing PooleShield output folder into one ZIP for upload/sharing")
     bundle_cmd.add_argument("--output-dir", required=True, help="Existing output folder to bundle")
@@ -1365,6 +1380,30 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             write_json(args.output, summary)
         print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0 if summary.get("ok") else 2
+
+
+    if args.command == "installer-build":
+        from installer_build import installer_status, installer_plan, write_inno_script, run_iscc
+        try:
+            if args.status:
+                summary = installer_status(root=".", portable_dir=args.portable_dir, app_name=args.name)
+            elif args.write_script:
+                summary = write_inno_script(args.script_path, root=".", portable_dir=args.portable_dir, output_dir=args.output_dir, app_name=args.name, app_version=args.app_version, publisher=args.publisher, installer_basename=args.installer_basename, force=args.force)
+            elif args.run_iscc:
+                spec_path = Path(args.script_path)
+                if not spec_path.exists():
+                    write_inno_script(args.script_path, root=".", portable_dir=args.portable_dir, output_dir=args.output_dir, app_name=args.name, app_version=args.app_version, publisher=args.publisher, installer_basename=args.installer_basename, force=True)
+                summary = run_iscc(args.script_path, root=".")
+            else:
+                summary = installer_plan(root=".", portable_dir=args.portable_dir, output_dir=args.output_dir, script_path=args.script_path, app_name=args.name, app_version=args.app_version, publisher=args.publisher, installer_basename=args.installer_basename)
+            summary.setdefault("ok", True)
+        except Exception as exc:
+            summary = {"ok": False, "version": VERSION, "error_type": exc.__class__.__name__, "error": str(exc)}
+        if args.output:
+            write_json(args.output, summary)
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0 if summary.get("ok") else 2
+
 
     if args.command == "scan":
         summary = run_pipeline(

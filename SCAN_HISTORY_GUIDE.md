@@ -1,6 +1,6 @@
 # PooleShield Scan History Guide
 
-Version: 5.0.0
+Version: 5.1.0
 
 PooleShield v3.9 adds a **local SQLite scan-history database** for UI/dashboard readiness.
 

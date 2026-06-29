@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PooleShield v5.0 portable Windows build helper.
+"""PooleShield v5.1 portable Windows build helper.
 
 Defensive purpose:
   Generate and optionally execute a local PyInstaller build plan for the
@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-VERSION = "5.0.0"
+VERSION = "5.1.0"
 DEFAULT_APP_NAME = "PooleShield"
 DEFAULT_ENTRY = "pooleshield_portable_launcher.py"
 DEFAULT_SPEC_PATH = "build/pooleshield_portable.spec"
@@ -278,7 +278,7 @@ def run_pyinstaller(spec_path: str = DEFAULT_SPEC_PATH, *, root: Optional[str] =
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="Build/status helper for PooleShield v5.0 portable Windows app.")
+    parser = argparse.ArgumentParser(description="Build/status helper for PooleShield v5.1 portable Windows app.")
     parser.add_argument("--root", default=".")
     parser.add_argument("--status", action="store_true")
     parser.add_argument("--write-spec", action="store_true")

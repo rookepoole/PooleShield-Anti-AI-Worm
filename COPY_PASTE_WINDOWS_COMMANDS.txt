@@ -1,4 +1,4 @@
-PooleShield v5.0 local test commands
+PooleShield v5.1 local test commands
 =====================================
 
 1) Extract the package, then open PowerShell in the package folder.
@@ -17,7 +17,7 @@ python .\pooleshield_operator.py portable-build --dry-run --output .\portable_bu
 python .\pooleshield_operator.py portable-build --write-spec --force
 python .\pooleshield_portable_launcher.py --status
 
-4) If using the CLI for a reproducible v5.0 scan bundle:
+4) If using the CLI for a reproducible v5.1 scan bundle:
 
 python .\pooleshield_operator.py file-av-scan-baseline `
   --config .\pooleshield_config.json `
@@ -28,6 +28,6 @@ python .\pooleshield_operator.py file-av-scan-baseline `
 
 5) Upload only the generated privacy bundle, not the package ZIP:
 
-out\file_av_desktop_v5_0\pooleshield_results_bundle.zip
+out\file_av_desktop_v5_1\pooleshield_results_bundle.zip
 
 Never commit local config, local baselines, local history DBs, local rule packs, build/dist folders, executables, output folders, result bundles, or generated response JSON.
