@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v4.4.0 operator CLI.
+PooleShield v5.0.0 operator CLI.
 
 Defensive purpose:
   Provide a real operator workflow for scanning folders/log exports, producing
@@ -47,7 +47,7 @@ from scan_history import (
 )
 import pooleshield_engine as engine
 
-VERSION = "4.4.0"
+VERSION = "5.0.0"
 
 
 def policy_path_for(profile: str) -> str:
@@ -780,7 +780,7 @@ def run_dat_batch(
     return summary
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="PooleShield v4.4 real operator workflow and desktop prototype")
+    parser = argparse.ArgumentParser(description="PooleShield v5.0 real operator workflow, desktop prototype, and portable Windows build helper")
     sub = parser.add_subparsers(dest="command", required=True)
 
     config_init = sub.add_parser("config-init", help="Create a local PooleShield config JSON")
@@ -1073,7 +1073,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     rule_pack_cmd.add_argument("--bundle-path", default=None)
     rule_pack_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
 
-    rule_pack_load_cmd = sub.add_parser("rule-pack-load", help="Load metadata-only rule pack entries for the v4.4 Rule Pack Editor UI")
+    rule_pack_load_cmd = sub.add_parser("rule-pack-load", help="Load metadata-only rule pack entries for the v5.0 Rule Pack Editor UI")
     rule_pack_load_cmd.add_argument("--rule-pack", required=True, help="Local file-AV rule pack JSON path")
     rule_pack_load_cmd.add_argument("--enabled", default="ANY", help="ANY, enabled, or disabled")
     rule_pack_load_cmd.add_argument("--type", dest="type_filter", default="", help="Optional rule type substring filter")
@@ -1130,7 +1130,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     engine_cmd.add_argument("--request", required=True, help="JSON request file with operation and params")
     engine_cmd.add_argument("--output", default=None, help="Optional path to write the JSON response")
 
-    results_load_cmd = sub.add_parser("results-load", help="Load metadata-only scan results for the v4.4 Results UI")
+    results_load_cmd = sub.add_parser("results-load", help="Load metadata-only scan results for the v5.0 Results UI")
     results_load_cmd.add_argument("--output-dir", required=True, help="Existing PooleShield output folder")
     results_load_cmd.add_argument("--decision", default="ANY", help="Optional effective decision filter")
     results_load_cmd.add_argument("--label", default="", help="Optional label substring filter")
@@ -1138,7 +1138,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     results_load_cmd.add_argument("--limit", type=int, default=500, help="Maximum metadata rows to return")
     results_load_cmd.add_argument("--output", default=None, help="Optional path to write JSON response")
 
-    baseline_load_cmd = sub.add_parser("baseline-load", help="Load metadata-only trusted baseline entries for the v4.4 Baseline Manager UI")
+    baseline_load_cmd = sub.add_parser("baseline-load", help="Load metadata-only trusted baseline entries for the v5.0 Baseline Manager UI")
     baseline_load_cmd.add_argument("--baseline", required=True, help="Local trusted_file_baseline.json path")
     baseline_load_cmd.add_argument("--decision", default="ANY", help="Optional trusted decision filter")
     baseline_load_cmd.add_argument("--kind", default="", help="Optional kind substring filter")
@@ -1152,8 +1152,24 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     baseline_diff_cmd.add_argument("--limit", type=int, default=500, help="Maximum entries per diff bucket to return")
     baseline_diff_cmd.add_argument("--output", default=None, help="Optional path to write JSON response")
 
-    desktop_cmd = sub.add_parser("desktop", help="Launch the v4.4 local desktop UI prototype")
+    desktop_cmd = sub.add_parser("desktop", help="Launch the v5.0 local desktop UI prototype")
     desktop_cmd.add_argument("--status", action="store_true", help="Print desktop dependency status instead of launching UI")
+
+
+    portable_cmd = sub.add_parser("portable-build", help="Plan or run the v5.0 portable Windows PyInstaller build")
+    portable_cmd.add_argument("--status", action="store_true", help="Print portable build dependency/source status")
+    portable_cmd.add_argument("--dry-run", action="store_true", help="Print build plan without writing spec or running PyInstaller")
+    portable_cmd.add_argument("--write-spec", action="store_true", help="Write a local PyInstaller spec file")
+    portable_cmd.add_argument("--run-pyinstaller", action="store_true", help="Run PyInstaller locally after writing/using the spec")
+    portable_cmd.add_argument("--force", action="store_true", help="Overwrite generated spec if writing one")
+    portable_cmd.add_argument("--clean", action="store_true", help="Pass --clean to PyInstaller")
+    portable_cmd.add_argument("--name", default="PooleShield", help="Portable app folder/exe name")
+    portable_cmd.add_argument("--entry", default="pooleshield_portable_launcher.py", help="Entry script for PyInstaller")
+    portable_cmd.add_argument("--spec-path", default="build/pooleshield_portable.spec", help="Generated spec path")
+    portable_cmd.add_argument("--dist-dir", default="dist", help="PyInstaller dist directory")
+    portable_cmd.add_argument("--work-dir", default="build/pyinstaller", help="PyInstaller work directory")
+    portable_cmd.add_argument("--console", action="store_true", help="Build console app instead of windowed app")
+    portable_cmd.add_argument("--output", default=None, help="Optional JSON output path")
 
     bundle_cmd = sub.add_parser("bundle", help="Bundle an existing PooleShield output folder into one ZIP for upload/sharing")
     bundle_cmd.add_argument("--output-dir", required=True, help="Existing output folder to bundle")
@@ -1326,6 +1342,29 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         from pooleshield_desktop import main as desktop_main
         desktop_args = ["--status"] if args.status else []
         return desktop_main(desktop_args)
+
+
+    if args.command == "portable-build":
+        from portable_build import build_status, build_plan, write_spec, run_pyinstaller
+        try:
+            if args.status:
+                summary = build_status(".")
+            elif args.write_spec:
+                summary = write_spec(args.spec_path, root=".", app_name=args.name, entry=args.entry, dist_dir=args.dist_dir, work_dir=args.work_dir, windowed=not args.console, force=args.force)
+            elif args.run_pyinstaller:
+                spec_path = Path(args.spec_path)
+                if not spec_path.exists():
+                    write_spec(args.spec_path, root=".", app_name=args.name, entry=args.entry, dist_dir=args.dist_dir, work_dir=args.work_dir, windowed=not args.console, force=True)
+                summary = run_pyinstaller(args.spec_path, root=".", clean=args.clean)
+            else:
+                summary = build_plan(root=".", spec_path=args.spec_path, app_name=args.name, entry=args.entry, dist_dir=args.dist_dir, work_dir=args.work_dir, windowed=not args.console, clean=args.clean)
+            summary.setdefault("ok", True)
+        except Exception as exc:
+            summary = {"ok": False, "version": VERSION, "error_type": exc.__class__.__name__, "error": str(exc)}
+        if args.output:
+            write_json(args.output, summary)
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0 if summary.get("ok") else 2
 
     if args.command == "scan":
         summary = run_pipeline(

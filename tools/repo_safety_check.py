@@ -18,13 +18,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
 
-VERSION = "4.4.0"
+VERSION = "5.0.0"
 
 FORBIDDEN_DIR_NAMES = {
     "out",
     "local_trust",
     "local_history",
     "local_rule_packs",
+    "dist",
+    "build",
+    "portable_build",
+    ".venv-build",
     "extracted_dat_text",
     "extracted_dat_content",
     "extracted_text_like",
@@ -56,6 +60,9 @@ FORBIDDEN_FILE_NAMES = {
     "rule_pack_response.json",
     "rule_pack_export_response.json",
     "rule_pack_update_response.json",
+    "portable_build_plan.json",
+    "portable_build_result.json",
+    "PooleShield.exe",
 }
 
 FORBIDDEN_SUFFIXES = {
@@ -65,6 +72,10 @@ FORBIDDEN_SUFFIXES = {
     ".sqlite",
     ".sqlite3",
     ".db",
+    ".exe",
+    ".msi",
+    ".msix",
+    ".spec",
 }
 
 ALLOWED_PUBLIC_FIXTURES = {

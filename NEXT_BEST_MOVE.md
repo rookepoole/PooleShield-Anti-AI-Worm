@@ -1,44 +1,31 @@
 # Next Best Move
 
-Test PooleShield v4.4 locally and verify the Rule Pack Editor UI path.
+Test PooleShield v5.0 locally and verify the portable Windows build path.
 
 ```powershell
 python -m pytest -q
 python .\tools\repo_safety_check.py --root .
 python .\tools\privacy_leak_check.py --root .
 python .\pooleshield_operator.py desktop --status
+python .\pooleshield_operator.py portable-build --status
 ```
 
-Verify metadata-only rule pack loading:
+Verify the portable build plan without running PyInstaller:
 
 ```powershell
-python .\pooleshield_operator.py rule-pack-load `
-  --rule-pack .\examples\rule_packs\file_av_rules.default.json `
-  --enabled enabled `
-  --limit 25 `
-  --output .\rule_pack_response.json
+python .\pooleshield_operator.py portable-build --dry-run --output .\portable_build_plan.json
+python .\pooleshield_operator.py portable-build --write-spec --force
+python .\pooleshield_portable_launcher.py --status
 ```
 
-Export a local editable copy:
+Optional Windows portable build:
 
 ```powershell
-python .\pooleshield_operator.py rule-pack-export-default `
-  --output .\local_rule_packs\file_av_rules.editable.json `
-  --force
+python -m pip install -r requirements-ui.txt -r requirements-build.txt
+python .\pooleshield_operator.py portable-build --run-pyinstaller --clean --output .\portable_build_result.json
 ```
 
-Edit one selected rule into a copy:
-
-```powershell
-python .\pooleshield_operator.py rule-pack-update-rule `
-  --rule-pack .\local_rule_packs\file_av_rules.editable.json `
-  --output .\local_rule_packs\file_av_rules.edited.json `
-  --index 0 `
-  --disabled `
-  --risk-delta 0.10
-```
-
-Run a baseline-aware scan either from the UI or from the CLI. If using the CLI for a reproducible v4.4 bundle:
+Run a baseline-aware scan either from the UI or from the CLI. If using the CLI for a reproducible v5.0 bundle:
 
 ```powershell
 python .\pooleshield_operator.py file-av-scan-baseline `
@@ -52,7 +39,7 @@ python .\pooleshield_operator.py file-av-scan-baseline `
 Upload only the generated privacy bundle:
 
 ```text
-out\file_av_desktop_v4_4\pooleshield_results_bundle.zip
+out\file_av_desktop_v5_0\pooleshield_results_bundle.zip
 ```
 
-If the bundle verifies clean, push v4.4. After v4.4, continue to v5.0 portable Windows build planning.
+If the bundle verifies clean, push v5.0. After v5.0, continue toward v5.1 Windows installer planning.

@@ -104,7 +104,7 @@ def test_desktop_results_summary():
             "items_after_filter": 12,
             "items_returned": 12,
             "baseline_matches": 102,
-            "bundle_path": "out/file_av_desktop_v4_4/pooleshield_results_bundle.zip",
+            "bundle_path": "out/file_av_desktop_v5_0/pooleshield_results_bundle.zip",
         },
     }
     summary = summarize_results_response(ok)

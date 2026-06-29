@@ -1,26 +1,25 @@
-# PooleShield v4.4.0
+# PooleShield v5.0.0
 
 PooleShield is a privacy-first second-opinion defensive scanner for suspicious files, archives, scripts, AI-agent logs, exported chat/data bundles, and local workflow artifacts.
 
 PooleShield is defensive only. It reads local artifacts, scores static/local risk signals, and writes review reports. It does **not** execute scanned content, follow links, send emails, delete files, quarantine files, kill processes, install drivers, or modify the scanned corpus.
 
-## v4.4 milestone
+## v5.0 milestone
 
-v4.4 adds the first **Rule Pack Editor UI** on top of the v4.0 Engine API, v4.1 desktop prototype, v4.2 Results UI, and v4.3 Baseline Manager UI:
+v5.0 adds the first **portable Windows build path** on top of the v4.0 Engine API and the v4.1–v4.4 desktop UI work:
 
 ```text
-pooleshield_desktop.py
-RULE_PACK_EDITOR_UI_GUIDE.md
-engine operation: rule_pack.load
-engine operation: rule_pack.export_default
-engine operation: rule_pack.update_rule
-operator command: rule-pack-load
-operator command: rule-pack-export-default
-operator command: rule-pack-update-rule
-Dashboard / Scan Folder / Results / Baseline / Rule Packs / History / About tabs
+pooleshield_portable_launcher.py
+portable_build.py
+build_portable_windows.ps1
+requirements-build.txt
+PORTABLE_WINDOWS_BUILD_GUIDE.md
+operator command: portable-build
+engine operation: portable.status
+engine operation: portable.plan
 ```
 
-The Rule Packs tab reads local rule-pack metadata, validates rules, filters by enabled/type/search text, exports the public default rule pack to a local editable copy, and writes selected-rule edits to a rule-pack JSON copy. It does not open scanned files, execute files, delete files, quarantine files, or silently trust files.
+The portable build helper is a local PyInstaller workflow. It can report build status, produce a build plan, write a local PyInstaller spec, and optionally run PyInstaller on Windows. Generated build artifacts are local-only and must not be committed.
 
 ## Quick local checks
 
@@ -29,42 +28,28 @@ python -m pytest -q
 python .\tools\repo_safety_check.py --root .
 python .\tools\privacy_leak_check.py --root .
 python .\pooleshield_operator.py desktop --status
+python .\pooleshield_operator.py portable-build --status
 ```
 
-## Rule Pack Editor smoke test
+## Portable build smoke test
 
 ```powershell
-python .\pooleshield_operator.py rule-pack-load `
-  --rule-pack .\examples\rule_packs\file_av_rules.default.json `
-  --enabled enabled `
-  --limit 25 `
-  --output .\rule_pack_response.json
+python .\pooleshield_operator.py portable-build --dry-run --output .\portable_build_plan.json
+python .\pooleshield_operator.py portable-build --write-spec --force
+python .\pooleshield_portable_launcher.py --status
 ```
 
-Export an editable copy:
+To build on Windows:
 
 ```powershell
-python .\pooleshield_operator.py rule-pack-export-default `
-  --output .\local_rule_packs\file_av_rules.editable.json `
-  --force
+python -m pip install -r requirements-ui.txt -r requirements-build.txt
+python .\pooleshield_operator.py portable-build --run-pyinstaller --clean --output .\portable_build_result.json
 ```
 
-Edit one rule into a copy:
+Expected local output:
 
-```powershell
-python .\pooleshield_operator.py rule-pack-update-rule `
-  --rule-pack .\local_rule_packs\file_av_rules.editable.json `
-  --output .\local_rule_packs\file_av_rules.edited.json `
-  --index 0 `
-  --disabled `
-  --risk-delta 0.10
-```
-
-## Install and launch the UI prototype
-
-```powershell
-python -m pip install PySide6
-python .\pooleshield_operator.py desktop
+```text
+dist\PooleShield\PooleShield.exe
 ```
 
 ## Baseline-aware file AV scan
@@ -84,7 +69,7 @@ This command is still dry-run only. It does not execute, delete, quarantine, or 
 
 ## Privacy rules
 
-Privacy bundles and repo commits must exclude content-bearing/private files such as:
+Privacy bundles and repo commits must exclude content-bearing/private/generated files such as:
 
 ```text
 normalized_events.jsonl
@@ -97,12 +82,14 @@ trusted_file_baseline.json
 pooleshield_config.json
 local_history/*.sqlite
 local_rule_packs/
-rule_pack_response.json
-rule_pack_export_response.json
-rule_pack_update_response.json
-baseline_response.json
-baseline_diff_response.json
-results_response.json
+portable_build_plan.json
+portable_build_result.json
+dist/
+build/
+*.exe
+*.msi
+*.msix
+pooleshield_results_bundle.zip
 ```
 
 The file AV scanner does not include raw file contents or matched snippets in its reports.
@@ -114,3 +101,4 @@ The file AV scanner does not include raw file contents or matched snippets in it
 - `RESULTS_UI_GUIDE.md` — Results UI
 - `BASELINE_MANAGER_UI_GUIDE.md` — Baseline Manager UI
 - `RULE_PACK_EDITOR_UI_GUIDE.md` — Rule Pack Editor UI
+- `PORTABLE_WINDOWS_BUILD_GUIDE.md` — Portable Windows build workflow

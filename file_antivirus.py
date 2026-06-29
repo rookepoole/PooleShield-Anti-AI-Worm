@@ -30,7 +30,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from result_bundler import bundle_output_dir
 from file_av_rules import apply_rule_pack, load_rule_pack, rule_pack_summary
 
-VERSION = "4.4.0"
+VERSION = "5.0.0"
 
 SCRIPT_EXTENSIONS = {
     ".ps1", ".psm1", ".bat", ".cmd", ".vbs", ".vbe", ".js", ".jse", ".wsf", ".wsh",

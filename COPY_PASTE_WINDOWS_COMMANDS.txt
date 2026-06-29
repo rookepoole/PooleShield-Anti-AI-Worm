@@ -1,4 +1,4 @@
-PooleShield v4.4 local test commands
+PooleShield v5.0 local test commands
 =====================================
 
 1) Extract the package, then open PowerShell in the package folder.
@@ -9,16 +9,15 @@ python -m pytest -q
 python .\tools\repo_safety_check.py --root .
 python .\tools\privacy_leak_check.py --root .
 python .\pooleshield_operator.py desktop --status
+python .\pooleshield_operator.py portable-build --status
 
-3) Install UI dependency:
+3) Verify the portable build helper:
 
-python -m pip install PySide6
+python .\pooleshield_operator.py portable-build --dry-run --output .\portable_build_plan.json
+python .\pooleshield_operator.py portable-build --write-spec --force
+python .\pooleshield_portable_launcher.py --status
 
-4) Launch desktop prototype:
-
-python .\pooleshield_operator.py desktop
-
-5) If you need a reproducible CLI scan bundle instead of using the UI:
+4) If using the CLI for a reproducible v5.0 scan bundle:
 
 python .\pooleshield_operator.py file-av-scan-baseline `
   --config .\pooleshield_config.json `
@@ -27,16 +26,8 @@ python .\pooleshield_operator.py file-av-scan-baseline `
   --bundle-output `
   --privacy-bundle
 
-6) Verify metadata-only result loading:
+5) Upload only the generated privacy bundle, not the package ZIP:
 
-python .\pooleshield_operator.py results-load `
-  --output-dir .\out\file_av_desktop_v4_4 `
-  --decision ALLOW_LOG `
-  --limit 25 `
-  --output .\results_response.json
+out\file_av_desktop_v5_0\pooleshield_results_bundle.zip
 
-7) Upload only the generated privacy bundle, not the package ZIP:
-
-out\file_av_desktop_v4_4\pooleshield_results_bundle.zip
-
-Never commit local config, local baselines, local history DBs, out folders, result bundles, or results_response.json.
+Never commit local config, local baselines, local history DBs, local rule packs, build/dist folders, executables, output folders, result bundles, or generated response JSON.

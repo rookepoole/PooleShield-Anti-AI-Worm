@@ -1,11 +1,11 @@
 {
   "tool": "PooleShield",
-  "version": "4.4.0",
+  "version": "5.0.0",
   "release_type": "continuity_handoff",
   "last_updated": "2026-06-28",
   "mission": "Privacy-first, defensive, non-executing second-opinion scanner for suspicious files, archives, scripts, AI-agent logs, exported data bundles, and local workflow artifacts.",
-  "current_release": "v4.4",
-  "current_milestone": "Rule Pack Editor UI for local rule-pack validation and editing",
+  "current_release": "v5.0",
+  "current_milestone": "Portable Windows build path",
   "safety_boundary": {
     "allowed": [
       "read local files for static scanning",
@@ -45,29 +45,30 @@
     "rule_pack.load",
     "rule_pack.export_default",
     "rule_pack.update_rule",
+    "portable.status",
+    "portable.plan",
     "file_av.scan_baseline",
     "results.load",
     "baseline.load",
     "baseline.diff"
   ],
-  "new_files_v4_4": [
-    "RULE_PACK_EDITOR_UI_GUIDE.md",
-    "updated file_av_rules.py rule-pack load/export/update helpers",
-    "updated pooleshield_engine.py rule_pack.load/rule_pack.export_default/rule_pack.update_rule",
-    "updated pooleshield_operator.py rule-pack-load/rule-pack-export-default/rule-pack-update-rule",
-    "updated pooleshield_desktop.py Rule Packs tab",
-    "updated tests/test_engine_api.py",
-    "updated tests/test_desktop_ui.py"
+  "new_files_v5_0": [
+    "pooleshield_portable_launcher.py",
+    "portable_build.py",
+    "build_portable_windows.ps1",
+    "requirements-build.txt",
+    "PORTABLE_WINDOWS_BUILD_GUIDE.md",
+    "tests/test_portable_build.py"
   ],
-  "new_commands_v4_4": [
-    "rule-pack-load",
-    "rule-pack-export-default",
-    "rule-pack-update-rule",
-    "desktop",
-    "desktop --status"
+  "new_commands_v5_0": [
+    "portable-build",
+    "portable-build --status",
+    "portable-build --dry-run",
+    "portable-build --write-spec",
+    "portable-build --run-pyinstaller"
   ],
   "validated_prior_release": {
-    "latest_validated_release": "v4.3",
+    "latest_validated_release": "v4.4",
     "final_verdict": "CLEAN_AFTER_POLICY",
     "require_approval": 0,
     "block": 0,
@@ -75,5 +76,5 @@
     "history_record_scan_id": 1,
     "bundle_hash_mismatches": 0
   },
-  "current_next_best_move": "Test v4.4 locally with pytest, repo safety check, privacy leak check, desktop --status, rule-pack-load/export/update, and a baseline-aware scan. Upload the generated privacy bundle before pushing v4.4."
+  "current_next_best_move": "Test v5.0 locally with pytest, repo safety check, privacy leak check, desktop --status, portable-build status/dry-run/write-spec, and a baseline-aware scan. Upload the generated privacy bundle before pushing v5.0."
 }

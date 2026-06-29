@@ -44,7 +44,7 @@ from scan_history import (
 )
 from scan_profiles import ScanProfileError, get_scan_profile, profile_catalog
 
-VERSION = "4.4.0"
+VERSION = "5.0.0"
 ENGINE_API_VERSION = "1"
 
 SUPPORTED_OPERATIONS = (
@@ -61,6 +61,8 @@ SUPPORTED_OPERATIONS = (
     "rule_pack.load",
     "rule_pack.export_default",
     "rule_pack.update_rule",
+    "portable.status",
+    "portable.plan",
     "file_av.scan_baseline",
     "results.load",
     "baseline.load",
@@ -154,6 +156,27 @@ def profile_show(name: str, config: Optional[str] = None) -> Dict[str, Any]:
         "profile": profile,
     }
     return _with_engine_metadata(summary, "profile.show")
+
+
+def portable_status(root: str = ".") -> Dict[str, Any]:
+    from portable_build import build_status
+    summary = build_status(root)
+    return _with_engine_metadata(summary, "portable.status")
+
+
+def portable_plan(
+    root: str = ".",
+    spec_path: str = "build/pooleshield_portable.spec",
+    app_name: str = "PooleShield",
+    entry: str = "pooleshield_portable_launcher.py",
+    dist_dir: str = "dist",
+    work_dir: str = "build/pyinstaller",
+    windowed: bool = True,
+    clean: bool = False,
+) -> Dict[str, Any]:
+    from portable_build import build_plan
+    summary = build_plan(root=root, spec_path=spec_path, app_name=app_name, entry=entry, dist_dir=dist_dir, work_dir=work_dir, windowed=windowed, clean=clean)
+    return _with_engine_metadata(summary, "portable.plan")
 
 
 def _resolve_history_db(config: Optional[str] = None, history_db: Optional[str] = None) -> str:
@@ -478,7 +501,7 @@ def results_load(
     text: Optional[str] = None,
     limit: int = 500,
 ) -> Dict[str, Any]:
-    """Load metadata-only scan results for the v4.4 Results UI.
+    """Load metadata-only scan results for the v5.0 Results UI.
 
     This reads PooleShield output JSON reports only. It does not open scanned
     files, execute anything, modify the scanned corpus, or include matched file
@@ -607,7 +630,7 @@ def baseline_load(
     text: Optional[str] = None,
     limit: int = 500,
 ) -> Dict[str, Any]:
-    """Load a local trusted-hash baseline as metadata-only rows for v4.4.
+    """Load a local trusted-hash baseline as metadata-only rows for v5.0.
 
     This reads only the local trusted baseline JSON. It does not open, execute,
     modify, delete, quarantine, or trust any scanned files.
@@ -744,6 +767,8 @@ def dispatch(request: Dict[str, Any]) -> Dict[str, Any]:
         "rule_pack.load": rule_pack_load,
         "rule_pack.export_default": rule_pack_export_default,
         "rule_pack.update_rule": rule_pack_update_rule,
+        "portable.status": portable_status,
+        "portable.plan": portable_plan,
         "file_av.scan_baseline": file_av_scan_baseline,
         "results.load": results_load,
         "baseline.load": baseline_load,

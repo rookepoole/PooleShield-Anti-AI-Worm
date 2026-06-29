@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PooleShield v4.4 desktop UI prototype.
+"""PooleShield v5.0 desktop UI prototype.
 
 Defensive purpose:
   Provide a local desktop dashboard, results-review UI, and baseline-manager UI for the PooleShield Engine API.
@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Sequence
 
 from pooleshield_engine import VERSION as ENGINE_VERSION, dispatch
 
-VERSION = "4.4.0"
+VERSION = "5.0.0"
 
 try:  # PySide6 is optional so core tests and CLI usage stay dependency-light.
     from PySide6.QtCore import QObject, QThread, Signal, Qt  # type: ignore
@@ -226,7 +226,7 @@ def build_file_av_scan_request(
 
 
 def summarize_results_response(response: Dict[str, Any]) -> str:
-    """Summarize metadata-only loaded results for the v4.4 results tab."""
+    """Summarize metadata-only loaded results for the v5.0 results tab."""
     if not response.get("ok"):
         return f"ERROR [{response.get('error_type')}]: {response.get('error')}"
     result = response.get("result", {})
@@ -413,7 +413,7 @@ if HAS_QT:
             self.target_path = QLineEdit(str(Path.home() / "Desktop" / "PooleShieldRealScanSmall"))
             self.baseline_path = QLineEdit("")
             self.rule_pack_path = QLineEdit("examples/rule_packs/file_av_rules.default.json")
-            self.output_dir = QLineEdit("out/file_av_desktop_v4_4")
+            self.output_dir = QLineEdit("out/file_av_desktop_v5_0")
             self.history_db = QLineEdit("local_history/pooleshield_scan_history.sqlite")
             self.profile_name = QComboBox()
             self.profile_name.addItems(["standard", "developer", "strict", "quick", "deep", "archive-heavy", "privacy-sensitive"])
@@ -460,7 +460,7 @@ if HAS_QT:
             layout = QVBoxLayout(tab)
             controls = QGroupBox("Results table and filters")
             row = QHBoxLayout(controls)
-            self.results_output_dir = QLineEdit("out/file_av_desktop_v4_4")
+            self.results_output_dir = QLineEdit("out/file_av_desktop_v5_0")
             self.results_decision = QComboBox()
             self.results_decision.addItems(["ANY", "ALLOW", "ALLOW_LOG", "REQUIRE_APPROVAL", "BLOCK", "QUARANTINE"])
             self.results_label_filter = QLineEdit("")

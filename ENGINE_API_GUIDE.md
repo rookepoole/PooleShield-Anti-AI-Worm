@@ -1,12 +1,12 @@
 # PooleShield Engine API Guide
 
-Version: 4.4.0
+Version: 5.0.0
 
-PooleShield v4.0 introduced a small Python engine layer so the CLI, desktop UI, and local process bridge can call the same backend functions. v4.4 extends that layer with metadata-only rule-pack loading and explicit rule-pack copy/update operations for the Rule Pack Editor UI.
+PooleShield v4.0 introduced a small Python engine layer so the CLI, desktop UI, and local process bridge can call the same backend functions. v5.0 extends that layer with metadata-only rule-pack loading and explicit rule-pack copy/update operations for the Rule Pack Editor UI.
 
 ## Safety boundary
 
-The Engine API is still defensive and read-only toward scanned files. It does not execute scanned files, delete files, quarantine files, kill processes, install hooks/drivers, send network requests, or upload raw scanned contents. v4.4 can write only operator-requested rule-pack JSON copies.
+The Engine API is still defensive and read-only toward scanned files. It does not execute scanned files, delete files, quarantine files, kill processes, install hooks/drivers, send network requests, or upload raw scanned contents. v5.0 can write only operator-requested rule-pack JSON copies.
 
 ## Python API
 
@@ -31,7 +31,7 @@ summary = file_av_scan_baseline(
 )
 
 results = results_load(
-    output_dir=r".\out\file_av_desktop_v4_4",
+    output_dir=r".\out\file_av_desktop_v5_0",
     decision="ALLOW_LOG",
     limit=25,
 )
@@ -77,7 +77,7 @@ Response shape:
 {
   "ok": true,
   "engine": "PooleShield Engine API",
-  "engine_version": "4.4.0",
+  "engine_version": "5.0.0",
   "engine_api_version": "1",
   "operation": "rule_pack.load",
   "result": {}
@@ -90,7 +90,7 @@ Errors are structured, not tracebacks:
 {
   "ok": false,
   "engine": "PooleShield Engine API",
-  "engine_version": "4.4.0",
+  "engine_version": "5.0.0",
   "engine_api_version": "1",
   "operation": "unknown.operation",
   "error_type": "unsupported_operation",
@@ -145,6 +145,11 @@ baseline.load
 baseline.diff
 ```
 
-## v4.4 Rule Pack Editor operations
+## v5.0 Rule Pack Editor operations
 
 `rule_pack.load` reads a local rule pack as metadata-only rows for the Rule Packs tab. `rule_pack.export_default` copies the public default rule pack to a local editable path. `rule_pack.update_rule` writes one selected-rule edit to an output rule-pack JSON copy. None of these operations scan, execute, trust, delete, or quarantine scanned files.
+
+
+## v5.0 Portable build operations
+
+`portable.status` reports build dependency/source status. `portable.plan` returns the PyInstaller command plan. These operations do not build executables or touch scanned files. The CLI command `portable-build --run-pyinstaller` is the explicit local build action.

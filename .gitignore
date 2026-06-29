@@ -37,3 +37,14 @@ local_rule_packs/
 rule_pack_response.json
 rule_pack_export_response.json
 rule_pack_update_response.json
+
+dist/
+build/
+portable_build/
+.venv-build/
+portable_build_plan.json
+portable_build_result.json
+*.exe
+*.msi
+*.msix
+*.spec
