@@ -21,3 +21,8 @@ extracted_text_like/
 .ruff_cache/
 pooleshield_config.json
 .pooleshield_config.json
+local_history/
+*.sqlite
+*.sqlite3
+*.db
+pooleshield_scan_history.*

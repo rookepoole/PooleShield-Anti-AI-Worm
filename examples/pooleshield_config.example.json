@@ -1,6 +1,6 @@
 {
   "tool": "PooleShield",
-  "version": "3.8.0",
+  "version": "3.9.0",
   "profile_name": "local-defaults",
   "description": "Local PooleShield defaults. Keep machine-specific/private paths out of Git.",
   "defaults": {
@@ -13,7 +13,9 @@
     "policy_profile": "balanced",
     "privacy_bundle": true,
     "bundle_output": false,
-    "scan_profile": "standard"
+    "scan_profile": "standard",
+    "history_db": "local_history/pooleshield_scan_history.sqlite",
+    "record_history": false
   },
   "limits": {
     "max_bytes_per_file": 5242880,

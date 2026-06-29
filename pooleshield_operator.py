@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v3.8.0 operator CLI.
+PooleShield v3.9.0 operator CLI.
 
 Defensive purpose:
   Provide a real operator workflow for scanning folders/log exports, producing
@@ -42,8 +42,11 @@ from pooleshield_config import (
     PooleShieldConfigError,
 )
 from scan_profiles import SCAN_PROFILE_NAMES, get_scan_profile, profile_catalog, ScanProfileError
+from scan_history import (
+    init_history_db, record_scan_output, list_history, show_history_scan, write_history_list_reports
+)
 
-VERSION = "3.8.0"
+VERSION = "3.9.0"
 
 
 def policy_path_for(profile: str) -> str:
@@ -1030,6 +1033,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     file_av_scan_baseline_cmd.add_argument("--bundle-output", action="store_true")
     file_av_scan_baseline_cmd.add_argument("--bundle-path", default=None)
     file_av_scan_baseline_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
+    file_av_scan_baseline_cmd.add_argument("--history-db", default=None, help="Optional local SQLite scan-history DB; can come from config defaults.history_db")
+    file_av_scan_baseline_cmd.add_argument("--record-history", action="store_true", help="Record this scan's metadata into the local history DB")
+    file_av_scan_baseline_cmd.add_argument("--history-notes", default="", help="Optional local note for the scan-history row")
 
     file_av_summary_cmd = sub.add_parser("file-av-final-summary", help="Create one operator-facing final file AV summary from an existing scan output")
     file_av_summary_cmd.add_argument("--output-dir", default="out/file_av_scan", help="Existing file AV output folder")
@@ -1065,6 +1071,33 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     rule_pack_cmd.add_argument("--bundle-output", action="store_true")
     rule_pack_cmd.add_argument("--bundle-path", default=None)
     rule_pack_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
+
+    history_init_cmd = sub.add_parser("history-init", help="Initialize or verify a local SQLite scan-history database")
+    history_init_cmd.add_argument("--config", default=None, help="Optional PooleShield config JSON for defaults.history_db")
+    history_init_cmd.add_argument("--history-db", default=None, help="Local SQLite history DB path")
+
+    history_record_cmd = sub.add_parser("history-record", help="Record an existing file-AV scan output into local scan history")
+    history_record_cmd.add_argument("--config", default=None, help="Optional PooleShield config JSON for defaults.history_db")
+    history_record_cmd.add_argument("--history-db", default=None, help="Local SQLite history DB path")
+    history_record_cmd.add_argument("--output-dir", required=True, help="Existing file-AV scan output folder")
+    history_record_cmd.add_argument("--notes", default="", help="Optional local operator note")
+    history_record_cmd.add_argument("--bundle-output", action="store_true")
+    history_record_cmd.add_argument("--bundle-path", default=None)
+    history_record_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
+
+    history_list_cmd = sub.add_parser("history-list", help="List recent local scan-history rows")
+    history_list_cmd.add_argument("--config", default=None, help="Optional PooleShield config JSON for defaults.history_db")
+    history_list_cmd.add_argument("--history-db", default=None, help="Local SQLite history DB path")
+    history_list_cmd.add_argument("--limit", type=int, default=10)
+    history_list_cmd.add_argument("--output-dir", default=None, help="Optional folder to write SCAN_HISTORY_LIST json/csv/md")
+    history_list_cmd.add_argument("--bundle-output", action="store_true")
+    history_list_cmd.add_argument("--bundle-path", default=None)
+    history_list_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
+
+    history_show_cmd = sub.add_parser("history-show", help="Show one local scan-history row")
+    history_show_cmd.add_argument("--config", default=None, help="Optional PooleShield config JSON for defaults.history_db")
+    history_show_cmd.add_argument("--history-db", default=None, help="Local SQLite history DB path")
+    history_show_cmd.add_argument("--scan-id", type=int, required=True)
 
     bundle_cmd = sub.add_parser("bundle", help="Bundle an existing PooleShield output folder into one ZIP for upload/sharing")
     bundle_cmd.add_argument("--output-dir", required=True, help="Existing output folder to bundle")
@@ -1116,6 +1149,56 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             "validation": validation,
             "profile": profile,
         }, indent=2, ensure_ascii=False))
+        return 0
+
+    def _resolve_history_db_from_args(args_obj: Any) -> str:
+        cfg, config_path, validation = load_and_validate_config(getattr(args_obj, "config", None))
+        defaults = cfg.get("defaults", {})
+        base_dir = config_path.parent if config_path else Path.cwd()
+        raw = getattr(args_obj, "history_db", None) or defaults.get("history_db")
+        if not raw:
+            raise PooleShieldConfigError("history_db is required; pass --history-db or set defaults.history_db in config")
+        from pooleshield_config import expand_config_path
+        return expand_config_path(raw, base_dir=base_dir) or str(Path("local_history") / "pooleshield_scan_history.sqlite")
+
+    if args.command == "history-init":
+        history_db = _resolve_history_db_from_args(args)
+        summary = init_history_db(history_db)
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0
+
+    if args.command == "history-record":
+        history_db = _resolve_history_db_from_args(args)
+        summary = record_scan_output(args.output_dir, history_db, notes=args.notes)
+        if args.bundle_output:
+            bundle_report = bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle)
+            summary["bundle_summary"] = bundle_report
+            summary["result_bundle"] = bundle_report.get("bundle_path")
+            write_json(str(Path(args.output_dir) / "SCAN_HISTORY_RECORD.json"), summary)
+            bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle)
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0
+
+    if args.command == "history-list":
+        history_db = _resolve_history_db_from_args(args)
+        summary = list_history(history_db, limit=args.limit)
+        if args.output_dir:
+            reports = write_history_list_reports(args.output_dir, summary)
+            summary["output_dir"] = args.output_dir
+            summary["reports"] = reports
+            if args.bundle_output:
+                bundle_report = bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle)
+                summary["bundle_summary"] = bundle_report
+                summary["result_bundle"] = bundle_report.get("bundle_path")
+                write_json(str(Path(args.output_dir) / "SCAN_HISTORY_LIST.json"), summary)
+                bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle)
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0
+
+    if args.command == "history-show":
+        history_db = _resolve_history_db_from_args(args)
+        summary = show_history_scan(history_db, scan_id=args.scan_id)
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0
 
     if args.command == "scan":
@@ -1340,7 +1423,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             privacy_bundle=args.privacy_bundle,
         )
         summary["config_summary"] = resolved.get("config_summary")
-        write_json(str(Path(summary["output_dir"]) / "RUN_SUMMARY_FILE_AV_BASELINE_SCAN.json"), summary)
+        if resolved.get("record_history"):
+            history = record_scan_output(summary["output_dir"], resolved["history_db"], notes=resolved.get("history_notes", ""))
+            summary["history_record"] = history
+            write_json(str(Path(summary["output_dir"]) / "RUN_SUMMARY_FILE_AV_BASELINE_SCAN.json"), summary)
+            if args.bundle_output:
+                bundle_report = bundle_output_dir(summary["output_dir"], args.bundle_path, privacy_mode=args.privacy_bundle)
+                summary["bundle_summary"] = bundle_report
+                summary["result_bundle"] = bundle_report.get("bundle_path")
+                write_json(str(Path(summary["output_dir"]) / "RUN_SUMMARY_FILE_AV_BASELINE_SCAN.json"), summary)
+                bundle_output_dir(summary["output_dir"], args.bundle_path, privacy_mode=args.privacy_bundle)
+        else:
+            write_json(str(Path(summary["output_dir"]) / "RUN_SUMMARY_FILE_AV_BASELINE_SCAN.json"), summary)
 
     elif args.command == "file-av-final-summary":
         summary = build_final_scan_summary(

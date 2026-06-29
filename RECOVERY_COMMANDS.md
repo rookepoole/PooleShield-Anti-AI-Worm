@@ -32,3 +32,10 @@ python .\pooleshield_operator.py file-av-scan-baseline `
 ```powershell
 git rm -r --cached --ignore-unmatch out local_trust extracted_dat_text extracted_dat_content extracted_text_like __pycache__ .pytest_cache pooleshield_config.json
 ```
+
+## v3.9 local scan history smoke test
+
+```powershell
+python .\pooleshield_operator.py history-init --history-db .\local_history\pooleshield_scan_history.sqlite
+python .\pooleshield_operator.py history-list --history-db .\local_history\pooleshield_scan_history.sqlite --limit 5
+```

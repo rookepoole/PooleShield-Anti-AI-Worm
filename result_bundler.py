@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-VERSION = "3.8.0"
+VERSION = "3.9.0"
 
 DEFAULT_EXCLUDE_DIRS = {"__pycache__", ".git", ".venv", "venv", "node_modules"}
 DEFAULT_INCLUDE_SUFFIXES = {
@@ -40,6 +40,8 @@ GENERATED_BUNDLE_FILE_NAMES = {
 # chats/logs. Privacy bundles exclude them so an operator can share the
 # decisions, hashes, and summary reports without uploading full chat content.
 CONTENT_BEARING_NAME_PATTERNS = [
+    "pooleshield_scan_history.sqlite",
+    "pooleshield_history.sqlite",
     "normalized_events.jsonl",
     "review_evidence_local.md",
     # v2.0 privacy fix: the full evidence JSON can contain redacted
@@ -63,6 +65,8 @@ def is_content_bearing(path: Path) -> bool:
     if parts.intersection(CONTENT_BEARING_DIR_NAMES):
         return True
     name = path.name.lower()
+    if path.suffix.lower() in {".sqlite", ".sqlite3", ".db"}:
+        return True
     if name in CONTENT_BEARING_NAME_PATTERNS:
         return True
     if name.endswith(".jsonl") and "normalized" in name and "event" in name:

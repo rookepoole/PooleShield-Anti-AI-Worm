@@ -18,11 +18,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
 
-VERSION = "3.8.0"
+VERSION = "3.9.0"
 
 FORBIDDEN_DIR_NAMES = {
     "out",
     "local_trust",
+    "local_history",
     "extracted_dat_text",
     "extracted_dat_content",
     "extracted_text_like",
@@ -44,12 +45,17 @@ FORBIDDEN_FILE_NAMES = {
     "trusted_file_baseline.md",
     "pooleshield_config.json",
     ".pooleshield_config.json",
+    "pooleshield_scan_history.sqlite",
+    "pooleshield_history.sqlite",
 }
 
 FORBIDDEN_SUFFIXES = {
     ".dat",
     ".pyc",
     ".pyo",
+    ".sqlite",
+    ".sqlite3",
+    ".db",
 }
 
 ALLOWED_PUBLIC_FIXTURES = {

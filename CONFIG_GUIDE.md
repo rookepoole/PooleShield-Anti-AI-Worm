@@ -1,6 +1,6 @@
 # PooleShield Configuration Guide
 
-Version: 3.8.0
+Version: 3.9.0
 
 PooleShield v3.8 adds a local JSON configuration system so operators do not need to repeat baseline, rule-pack, output, risk-profile, and privacy defaults on every command.
 
@@ -138,3 +138,20 @@ Use `profile-list` and `profile-show` to inspect the effective profile.
 python .\pooleshield_operator.py profile-list --config .\pooleshield_config.json
 python .\pooleshield_operator.py profile-show --name developer --config .\pooleshield_config.json
 ```
+
+## v3.9 history defaults
+
+v3.9 adds optional local scan-history settings:
+
+```json
+{
+  "defaults": {
+    "history_db": "local_history/pooleshield_scan_history.sqlite",
+    "record_history": false
+  }
+}
+```
+
+`history_db` points to a local SQLite database. `record_history` can be enabled when you want `file-av-scan-baseline` to automatically record final verdict metadata after a scan.
+
+Do not commit the history DB. The repo safety checker blocks `local_history/`, `*.sqlite`, `*.sqlite3`, and `*.db`.

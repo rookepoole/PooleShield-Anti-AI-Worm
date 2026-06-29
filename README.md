@@ -167,3 +167,19 @@ python .\pooleshield_operator.py profile-list
 python .\pooleshield_operator.py profile-show --name developer
 python .\pooleshield_operator.py file-av-scan-baseline --config .\pooleshield_config.json --scan-profile developer --path <folder> --clean-output --bundle-output --privacy-bundle
 ```
+
+## v3.9 local scan history
+
+PooleShield v3.9 adds a local SQLite scan-history layer for UI/dashboard readiness. It records scan metadata such as timestamp, final verdict, scan profile, baseline matches, and action-item counts. It does not store raw scanned file contents, decoded DAT text, baseline JSON, or local review evidence.
+
+Commands:
+
+```powershell
+python .\pooleshield_operator.py history-init --history-db .\local_history\pooleshield_scan_history.sqlite
+python .\pooleshield_operator.py history-record --history-db .\local_history\pooleshield_scan_history.sqlite --output-dir .\out\file_av_scan
+python .\pooleshield_operator.py history-list --history-db .\local_history\pooleshield_scan_history.sqlite --limit 10
+python .\pooleshield_operator.py history-show --history-db .\local_history\pooleshield_scan_history.sqlite --scan-id 1
+```
+
+`local_history/`, `*.sqlite`, `*.sqlite3`, and `*.db` are local/private and blocked by repo safety checks.
+

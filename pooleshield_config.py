@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-VERSION = "3.8.0"
+VERSION = "3.9.0"
 CONFIG_FILENAMES = ("pooleshield_config.json", ".pooleshield_config.json")
 RISK_PROFILES = {"standard", "developer"}
 POLICY_PROFILES = {"balanced", "strict"}
@@ -41,6 +41,8 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "policy_profile": "balanced",
         "privacy_bundle": True,
         "bundle_output": False,
+        "history_db": "local_history/pooleshield_scan_history.sqlite",
+        "record_history": False,
     },
     "limits": {
         "max_bytes_per_file": 5 * 1024 * 1024,
@@ -148,7 +150,7 @@ def validate_config(cfg: Dict[str, Any], config_path: Optional[Path] = None, req
     policy_profile = defaults.get("policy_profile")
     if policy_profile not in POLICY_PROFILES:
         errors.append(f"defaults.policy_profile must be one of {sorted(POLICY_PROFILES)}")
-    for key in ("privacy_bundle", "bundle_output"):
+    for key in ("privacy_bundle", "bundle_output", "record_history"):
         if not isinstance(defaults.get(key), bool):
             errors.append(f"defaults.{key} must be true or false")
 
@@ -163,7 +165,7 @@ def validate_config(cfg: Dict[str, Any], config_path: Optional[Path] = None, req
 
     base_dir = config_path.parent if config_path else Path.cwd()
     resolved_paths: Dict[str, Optional[str]] = {}
-    for key in ("output_root", "file_av_output_dir", "file_av_baseline_scan_output_dir", "rule_pack", "baseline"):
+    for key in ("output_root", "file_av_output_dir", "file_av_baseline_scan_output_dir", "rule_pack", "baseline", "history_db"):
         value = defaults.get(key)
         if not isinstance(value, str) or not value:
             errors.append(f"defaults.{key} must be a non-empty string")
@@ -243,6 +245,9 @@ def resolve_file_av_baseline_scan_options(args: Any) -> Dict[str, Any]:
         "max_archive_entry_bytes": getattr(args, "max_archive_entry_bytes", None) or scan_profile.get("max_archive_entry_bytes") or limits.get("max_archive_entry_bytes", 2 * 1024 * 1024),
         "privacy_bundle": getattr(args, "privacy_bundle", defaults.get("privacy_bundle", scan_profile.get("privacy_bundle", True))),
         "bundle_output": getattr(args, "bundle_output", defaults.get("bundle_output", False)),
+        "history_db": expand_config_path(getattr(args, "history_db", None) or defaults.get("history_db"), base_dir=base_dir),
+        "record_history": bool(getattr(args, "record_history", False) or defaults.get("record_history", False)),
+        "history_notes": getattr(args, "history_notes", "") or "",
         "config_summary": {
             "config_path": str(config_path) if config_path else None,
             "used_config_file": config_path is not None,
