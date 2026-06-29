@@ -1,8 +1,25 @@
-# PooleShield v5.2.1
+﻿# PooleShield v5.2.1
 
 PooleShield is a privacy-first second-opinion defensive scanner for suspicious files, archives, scripts, AI-agent logs, exported chat/data bundles, and local workflow artifacts.
 
 PooleShield is defensive only. It reads local artifacts, scores static/local risk signals, and writes review reports. It does **not** execute scanned content, follow links, send emails, delete files, quarantine files, kill processes, install drivers, or modify the scanned corpus.
+## Latest public pre-release
+
+PooleShield v5.2.1 is available as a public GitHub pre-release:
+
+- Release: https://github.com/rookepoole/PooleShield-Anti-AI-Worm/releases/tag/v5.2.1
+- Portable ZIP: PooleShieldPortable_v5.2.1.zip
+- Windows installer: PooleShieldSetup_v5.2.1.exe
+- Checksums: SHA256SUMS_v5.2.1.txt
+- Public manifest: PUBLIC_RELEASE_MANIFEST_v5.2.1.json
+
+This installer is not code-signed yet, so Windows SmartScreen may warn because the binary is unsigned/new. Verify the SHA256 checksums before running.
+
+Expected SHA256 values:
+
+- 7CF9E6978DFC929E72DC45A0E8828F7841250B43ADEEFB6352515469B5C41831  PooleShieldPortable_v5.2.1.zip
+- D9CEEDCB7B109C04BA68C7CA875EABABF959AA245D7A74BCDC95F37E6CB5C3E6  PooleShieldSetup_v5.2.1.exe
+
 
 ## v5.2 milestone
 
@@ -64,3 +81,4 @@ release_notes_draft.md
 ```
 
 The file AV scanner does not include raw file contents or matched snippets in its reports.
+
