@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PooleShield v5.2.0 release manifest helper.
+"""PooleShield v5.2.1 release manifest helper.
 
 Defensive purpose:
   Create metadata-only integrity manifests for locally built PooleShield release
@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
-VERSION = "5.2.0"
+VERSION = "5.2.1"
 DEFAULT_RELEASE_VERSION = VERSION
 DEFAULT_APP_NAME = "PooleShield"
 DEFAULT_OUTPUT = "release_manifest.json"

@@ -1,6 +1,6 @@
 {
   "tool": "PooleShield",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "release_type": "continuity_handoff",
   "last_updated": "2026-06-28",
   "mission": "Privacy-first, defensive, non-executing second-opinion scanner for suspicious files, archives, scripts, AI-agent logs, exported data bundles, and local workflow artifacts.",

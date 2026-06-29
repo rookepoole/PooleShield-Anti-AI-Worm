@@ -1,5 +1,5 @@
 $ErrorActionPreference = "Stop"
-Write-Host "=== PooleShield v5.2.0 Windows installer build helper ==="
+Write-Host "=== PooleShield v5.2.1 Windows installer build helper ==="
 python .\pooleshield_operator.py installer-build --status
 python .\pooleshield_operator.py installer-build --dry-run --output .\installer_build_plan.json
 python .\pooleshield_operator.py installer-build --write-script --force

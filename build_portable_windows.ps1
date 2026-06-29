@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== PooleShield v5.2.0 portable Windows build ==="
+Write-Host "=== PooleShield v5.2.1 portable Windows build ==="
 
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $Root

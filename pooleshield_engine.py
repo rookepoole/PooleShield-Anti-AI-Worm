@@ -44,7 +44,7 @@ from scan_history import (
 )
 from scan_profiles import ScanProfileError, get_scan_profile, profile_catalog
 
-VERSION = "5.2.0"
+VERSION = "5.2.1"
 ENGINE_API_VERSION = "1"
 
 SUPPORTED_OPERATIONS = (
@@ -552,7 +552,7 @@ def results_load(
     text: Optional[str] = None,
     limit: int = 500,
 ) -> Dict[str, Any]:
-    """Load metadata-only scan results for the v5.2.0 Results UI.
+    """Load metadata-only scan results for the v5.2.1 Results UI.
 
     This reads PooleShield output JSON reports only. It does not open scanned
     files, execute anything, modify the scanned corpus, or include matched file

@@ -25,7 +25,7 @@ Create the release manifest and release notes draft:
 
 ```powershell
 python .\pooleshield_operator.py release-manifest `
-  --release-version 5.2.0 `
+  --release-version 5.2.1 `
   --portable-dir C:\Users\rookp\Desktop\PooleShieldPortable_v5_0_RELEASE `
   --installer-path C:\path\to\PooleShieldSetup.exe `
   --output .\release_manifest_response.json `

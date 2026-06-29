@@ -36,7 +36,7 @@ def test_release_status_and_manifest_metadata_only(tmp_path: Path):
     assert status["safety_boundary"]["artifact_contents_copied"] is False
     assert status["safety_boundary"]["artifacts_executed"] is False
 
-    manifest = build_release_manifest(root=str(tmp_path), portable_dir=str(portable), installer_path=str(installer), release_version="5.2.0")
+    manifest = build_release_manifest(root=str(tmp_path), portable_dir=str(portable), installer_path=str(installer), release_version="5.2.1")
     assert manifest["mode"] == "release-manifest"
     assert manifest["artifact_count"] == 2
     assert manifest["manifest_sha256"]

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PooleShield v5.2.0 portable Windows build helper.
+"""PooleShield v5.2.1 portable Windows build helper.
 
 Defensive purpose:
   Generate and optionally execute a local PyInstaller build plan for the
@@ -10,6 +10,7 @@ Defensive purpose:
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import platform
 import shutil
@@ -18,7 +19,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-VERSION = "5.2.0"
+VERSION = "5.2.1"
 DEFAULT_APP_NAME = "PooleShield"
 DEFAULT_ENTRY = "pooleshield_portable_launcher.py"
 DEFAULT_SPEC_PATH = "build/pooleshield_portable.spec"
@@ -50,8 +51,21 @@ def root_path(root: Optional[str] = None) -> Path:
     return Path(root or Path.cwd()).resolve()
 
 
+def pyinstaller_executable() -> Optional[str]:
+    """Return a visible PyInstaller console command, if PATH exposes one."""
+    return shutil.which("pyinstaller") or shutil.which("pyinstaller.exe")
+
+
+def pyinstaller_module_available() -> bool:
+    """Return whether the current Python can run `python -m PyInstaller`."""
+    try:
+        return importlib.util.find_spec("PyInstaller.__main__") is not None or importlib.util.find_spec("PyInstaller") is not None
+    except (ImportError, ModuleNotFoundError, AttributeError, ValueError):
+        return False
+
+
 def pyinstaller_available() -> bool:
-    return shutil.which("pyinstaller") is not None or shutil.which("pyinstaller.exe") is not None
+    return pyinstaller_executable() is not None or pyinstaller_module_available()
 
 
 def pyside6_available() -> bool:
@@ -76,6 +90,8 @@ def build_status(root: Optional[str] = None) -> Dict[str, Any]:
         "python": sys.version.split()[0],
         "windows": platform.system().lower() == "windows",
         "pyinstaller_available": pyinstaller_available(),
+        "pyinstaller_executable": pyinstaller_executable() or "",
+        "pyinstaller_module_available": pyinstaller_module_available(),
         "pyside6_available": pyside6_available(),
         "entry_exists": entry.exists(),
         "missing_required_files": missing,
@@ -213,7 +229,11 @@ def build_command(
     noconfirm: bool = True,
 ) -> List[str]:
     repo = root_path(root)
-    cmd = ["pyinstaller"]
+    executable = pyinstaller_executable()
+    if executable:
+        cmd = [executable]
+    else:
+        cmd = [sys.executable, "-m", "PyInstaller"]
     if clean:
         cmd.append("--clean")
     if noconfirm:
@@ -278,7 +298,7 @@ def run_pyinstaller(spec_path: str = DEFAULT_SPEC_PATH, *, root: Optional[str] =
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="Build/status helper for PooleShield v5.2.0 portable Windows app.")
+    parser = argparse.ArgumentParser(description="Build/status helper for PooleShield v5.2.1 portable Windows app.")
     parser.add_argument("--root", default=".")
     parser.add_argument("--status", action="store_true")
     parser.add_argument("--write-spec", action="store_true")

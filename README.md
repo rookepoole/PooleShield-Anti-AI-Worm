@@ -1,4 +1,4 @@
-# PooleShield v5.2.0
+# PooleShield v5.2.1
 
 PooleShield is a privacy-first second-opinion defensive scanner for suspicious files, archives, scripts, AI-agent logs, exported chat/data bundles, and local workflow artifacts.
 
@@ -33,7 +33,7 @@ python .\pooleshield_operator.py release-manifest --help
 
 ```powershell
 python .\pooleshield_operator.py release-manifest `
-  --release-version 5.2.0 `
+  --release-version 5.2.1 `
   --portable-dir C:\Users\rookp\Desktop\PooleShieldPortable_v5_0_RELEASE `
   --installer-path C:\path\to\PooleShieldSetup.exe `
   --output .\release_manifest_response.json `

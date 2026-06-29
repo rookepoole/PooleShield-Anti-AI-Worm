@@ -1,6 +1,6 @@
 # PooleShield v5.2 Release Packaging Guide
 
-Version: 5.2.0
+Version: 5.2.1
 
 PooleShield v5.2 adds local release packaging and integrity-manifest tooling. This release does **not** add real-time protection, a Windows service, kernel hooks, automatic quarantine, or cloud upload behavior.
 
@@ -28,7 +28,7 @@ Create the manifest and release-notes draft:
 
 ```powershell
 python .\pooleshield_operator.py release-manifest `
-  --release-version 5.2.0 `
+  --release-version 5.2.1 `
   --portable-dir C:\Users\rookp\Desktop\PooleShieldPortable_v5_0_RELEASE `
   --installer-path C:\path\to\PooleShieldSetup.exe `
   --output .\release_manifest_response.json `
@@ -42,7 +42,7 @@ python .\pooleshield_operator.py release-manifest `
 ```
 
 ```json
-{"operation":"release.manifest","params":{"release_version":"5.2.0","portable_dir":"C:\\path\\to\\portable","installer_path":"C:\\path\\to\\PooleShieldSetup.exe"}}
+{"operation":"release.manifest","params":{"release_version":"5.2.1","portable_dir":"C:\\path\\to\\portable","installer_path":"C:\\path\\to\\PooleShieldSetup.exe"}}
 ```
 
 ## Do not commit

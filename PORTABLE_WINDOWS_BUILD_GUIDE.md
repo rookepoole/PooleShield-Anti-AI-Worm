@@ -1,6 +1,6 @@
-# PooleShield v5.2.0 Portable Windows Build Guide
+# PooleShield v5.2.1 Portable Windows Build Guide
 
-PooleShield v5.2.0 adds the first portable Windows build path. This release does **not** add real-time protection, a Windows service, kernel hooks, automatic quarantine, or installer behavior. It only creates a local portable desktop app folder from the existing Engine API and desktop UI.
+PooleShield v5.2.1 adds the first portable Windows build path. This release does **not** add real-time protection, a Windows service, kernel hooks, automatic quarantine, or installer behavior. It only creates a local portable desktop app folder from the existing Engine API and desktop UI.
 
 ## Safety boundary
 
@@ -53,7 +53,7 @@ You can also run the full helper script:
 
 ## What to upload for review
 
-For this v5.2.0 source-package test, upload the normal PooleShield privacy results bundle after running the scan command. Do **not** upload `dist/PooleShield` unless you intentionally want the executable bundle inspected.
+For this v5.2.1 source-package test, upload the normal PooleShield privacy results bundle after running the scan command. Do **not** upload `dist/PooleShield` unless you intentionally want the executable bundle inspected.
 
 ## Do not commit
 

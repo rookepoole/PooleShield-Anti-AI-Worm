@@ -1,6 +1,6 @@
 # PooleShield Project State
 
-Version: 5.2.0
+Version: 5.2.1
 
 Current milestone: v5.2 adds release packaging and integrity-manifest tooling for the verified portable app and Windows installer. It creates metadata-only SHA256 manifests and release-note drafts without copying, executing, installing, uploading, deleting, or quarantining artifacts.
 

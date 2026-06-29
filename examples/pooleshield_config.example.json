@@ -1,6 +1,6 @@
 {
   "tool": "PooleShield",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "profile_name": "local-defaults",
   "description": "Local PooleShield defaults. Keep machine-specific/private paths out of Git.",
   "defaults": {

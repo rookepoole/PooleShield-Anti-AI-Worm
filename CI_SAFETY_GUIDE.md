@@ -1,6 +1,6 @@
 # PooleShield CI Safety Guide
 
-Version: 5.2.0
+Version: 5.2.1
 
 PooleShield v3.6 adds repository safety checks so GitHub can catch private or generated artifacts before they become part of the public repo.
 
@@ -59,7 +59,7 @@ python .\tools\repo_safety_check.py --root .
 Expected:
 
 ```text
-PooleShield repo safety check passed. Version 5.2.0.
+PooleShield repo safety check passed. Version 5.2.1.
 ```
 
 ## If CI fails

@@ -5,7 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from portable_build import VERSION, build_plan, build_status, render_spec, write_spec
+from portable_build import VERSION, build_command, build_plan, build_status, render_spec, write_spec
 from pooleshield_engine import dispatch, portable_plan, portable_status
 
 
@@ -20,11 +20,18 @@ def test_portable_status_is_safe_metadata():
 def test_portable_plan_and_spec_render():
     plan = build_plan(root=".", clean=True)
     assert plan["mode"] == "portable-build-plan"
-    assert "pyinstaller" in plan["command"][0].lower()
+    assert any("pyinstaller" in str(part).lower() for part in plan["command"])
     spec = render_spec(root=".")
     assert "pooleshield_portable_launcher.py" in spec
     assert "trusted_file_baseline" not in spec
     assert "local_history" not in spec
+
+
+def test_build_command_uses_pyinstaller_or_python_module():
+    command = build_command(root=".", clean=True)
+    joined = " ".join(str(part) for part in command).lower()
+    assert "pyinstaller" in joined
+    assert "--clean" in command
 
 
 def test_write_spec_to_tmp_path(tmp_path: Path):
