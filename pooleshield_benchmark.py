@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PooleShield v5.3.0 safe-corpus benchmark runner.
+"""PooleShield v5.4 safe-corpus benchmark runner.
 
 This benchmark consumes metadata/features only. It does not download, unpack,
 execute, or inspect live malware binaries.
@@ -111,6 +111,8 @@ def run_safe_corpus_benchmark(
     bundle_output: bool = False,
     bundle_path: Optional[str] = None,
     privacy_bundle: bool = True,
+    redact_paths: bool = False,
+    path_redaction_mode: str = "basename",
 ) -> Dict[str, Any]:
     out = Path(output_dir)
     if clean_output and out.exists():
@@ -191,9 +193,21 @@ def run_safe_corpus_benchmark(
     ]
     (out / "safe_corpus_benchmark.md").write_text("\n".join(md_lines), encoding="utf-8")
     if bundle_output:
-        bundle = bundle_output_dir(str(out), bundle_path or str(out / "pooleshield_results_bundle.zip"), privacy_mode=privacy_bundle)
+        bundle = bundle_output_dir(
+            str(out),
+            bundle_path or str(out / "pooleshield_results_bundle.zip"),
+            privacy_mode=privacy_bundle,
+            redact_paths=redact_paths,
+            path_redaction_mode=path_redaction_mode,
+        )
         summary["bundle_summary"] = bundle
         summary["result_bundle"] = bundle.get("bundle_path")
         (out / "safe_corpus_benchmark.json").write_text(json.dumps({**summary, "items": rows}, indent=2, ensure_ascii=False), encoding="utf-8")
-        bundle_output_dir(str(out), bundle_path or str(out / "pooleshield_results_bundle.zip"), privacy_mode=privacy_bundle)
+        bundle_output_dir(
+            str(out),
+            bundle_path or str(out / "pooleshield_results_bundle.zip"),
+            privacy_mode=privacy_bundle,
+            redact_paths=redact_paths,
+            path_redaction_mode=path_redaction_mode,
+        )
     return {**summary, "items": rows}

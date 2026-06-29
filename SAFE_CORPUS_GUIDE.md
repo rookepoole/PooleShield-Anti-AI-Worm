@@ -108,3 +108,10 @@ unknown
 ```
 
 Unknown labels are allowed but excluded from supervised precision/recall metrics.
+
+
+## v5.4 safe external dataset dry-run
+
+Use `safe-dataset-dry-run` before converting external JSONL/CSV rows into a safe corpus. It validates feature-only rows, rejects raw-binary and sample-path fields, writes a rejection log, and can emit `safe_external_dataset.jsonl` for benchmark use.
+
+See `SAFE_DATASET_DRY_RUN_GUIDE.md`.

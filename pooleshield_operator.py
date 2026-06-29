@@ -1213,11 +1213,34 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     safe_benchmark_cmd.add_argument("--bundle-output", action="store_true")
     safe_benchmark_cmd.add_argument("--bundle-path", default=None)
     safe_benchmark_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
+    safe_benchmark_cmd.add_argument("--redact-paths", action="store_true", help="Redact local absolute paths inside the result bundle copy")
+    safe_benchmark_cmd.add_argument("--path-redaction-mode", choices=["basename", "hash", "relative"], default="basename")
+
+
+    safe_dataset_cmd = sub.add_parser("safe-dataset-dry-run", help="Validate/normalize an external feature-only JSONL/CSV dataset without samples")
+    safe_dataset_cmd.add_argument("--input", required=True, help="External feature-only JSONL/CSV file")
+    safe_dataset_cmd.add_argument("--output-dir", default="out/safe_dataset_dry_run")
+    safe_dataset_cmd.add_argument("--clean-output", action="store_true")
+    safe_dataset_cmd.add_argument("--source", default="external")
+    safe_dataset_cmd.add_argument("--format", choices=["auto", "jsonl", "csv"], default="auto")
+    safe_dataset_cmd.add_argument("--limit", type=int, default=None)
+    safe_dataset_cmd.add_argument("--preview-limit", type=int, default=50)
+    safe_dataset_cmd.add_argument("--write-safe-jsonl", "--write-normalized", dest="write_safe_jsonl", action="store_true", help="Write accepted normalized feature-only rows to safe_external_dataset.jsonl")
+    safe_dataset_cmd.add_argument("--allow-path-fields", action="store_true", help="Do not reject non-sample path-like metadata; row paths are still never opened")
+    safe_dataset_cmd.add_argument("--allow-url-metadata", action="store_true", help="Allow URL-like metadata as ignored metadata; URLs are still never fetched")
+    safe_dataset_cmd.add_argument("--bundle-output", action="store_true")
+    safe_dataset_cmd.add_argument("--bundle-path", default=None)
+    safe_dataset_cmd.add_argument("--privacy-bundle", action="store_true", default=True)
+    safe_dataset_cmd.add_argument("--redact-paths", dest="redact_paths", action="store_true", default=True, help="Explicitly redact local absolute paths inside bundle/report copies; this is the default")
+    safe_dataset_cmd.add_argument("--no-redact-paths", action="store_true")
+    safe_dataset_cmd.add_argument("--path-redaction-mode", choices=["basename", "hash", "relative"], default="basename")
 
     bundle_cmd = sub.add_parser("bundle", help="Bundle an existing PooleShield output folder into one ZIP for upload/sharing")
     bundle_cmd.add_argument("--output-dir", required=True, help="Existing output folder to bundle")
     bundle_cmd.add_argument("--bundle-path", default=None, help="Optional ZIP path")
     bundle_cmd.add_argument("--privacy-bundle", action="store_true", help="Exclude content-bearing normalized event JSONL from bundle")
+    bundle_cmd.add_argument("--redact-paths", action="store_true", help="Redact local absolute paths inside the ZIP copy")
+    bundle_cmd.add_argument("--path-redaction-mode", choices=["basename", "hash", "relative"], default="basename")
 
     args = parser.parse_args(argv)
     if args.command == "config-init":
@@ -1461,6 +1484,28 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 0 if summary.get("ok") else 2
 
 
+
+    if args.command == "safe-dataset-dry-run":
+        summary = engine.safe_dataset_dry_run(
+            input_path=args.input,
+            output_dir=args.output_dir,
+            clean_output=args.clean_output,
+            source=args.source,
+            input_format=args.format,
+            limit=args.limit,
+            preview_limit=args.preview_limit,
+            write_safe_jsonl=args.write_safe_jsonl,
+            strict_path_fields=not args.allow_path_fields,
+            allow_url_metadata=args.allow_url_metadata,
+            bundle_output=args.bundle_output,
+            bundle_path=args.bundle_path,
+            privacy_bundle=args.privacy_bundle,
+            redact_paths=(False if args.no_redact_paths else True),
+            path_redaction_mode=args.path_redaction_mode,
+        )
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0
+
     if args.command == "safe-corpus-status":
         summary = engine.safe_corpus_status(dataset=args.dataset, source=args.source)
         if args.output:
@@ -1485,6 +1530,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             bundle_output=args.bundle_output,
             bundle_path=args.bundle_path,
             privacy_bundle=args.privacy_bundle,
+            redact_paths=args.redact_paths,
+            path_redaction_mode=args.path_redaction_mode,
         )
         print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0 if not summary.get("invalid_records") else 2
@@ -1643,7 +1690,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     elif args.command == "batch-rollup":
         summary = build_rollup(paths=args.path, output_dir=args.output_dir, clean_output=args.clean_output)
         if args.bundle_output:
-            bundle_report = bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle)
+            bundle_report = bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle, redact_paths=args.redact_paths, path_redaction_mode=args.path_redaction_mode)
             summary["bundle_summary"] = bundle_report
             summary["result_bundle"] = bundle_report.get("bundle_path")
             write_json(str(Path(args.output_dir) / "batch_rollup.json"), summary)

@@ -14,12 +14,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-VERSION = "5.3.0"
+VERSION = "5.4.2"
 
 DEFAULT_EXCLUDE_DIRS = {"__pycache__", ".git", ".venv", "venv", "node_modules"}
 DEFAULT_INCLUDE_SUFFIXES = {
@@ -59,6 +60,13 @@ CONTENT_BEARING_DIR_NAMES = {
     "extracted_text_like",
 }
 
+PATH_REDACTION_MODES = {"basename", "hash", "relative"}
+# Match common local absolute paths in JSON/CSV/Markdown/text. The Windows
+# pattern intentionally handles JSON-escaped backslashes (C:\\Users\\...) too.
+WINDOWS_PATH_RE = re.compile(r"(?i)[a-z]:(?:\\+|/+)(?:users|documents and settings)(?:\\+|/+)[^\r\n\"'`<>]+")
+WINDOWS_GENERIC_PATH_RE = re.compile(r"(?i)[a-z]:(?:\\+|/+)[^\r\n\"'`<>]+")
+POSIX_HOME_PATH_RE = re.compile(r"(?i)/(?:users|home)/[^\s\r\n\"'`<>]+")
+
 
 def is_content_bearing(path: Path) -> bool:
     parts = {part.lower() for part in path.parts}
@@ -72,6 +80,10 @@ def is_content_bearing(path: Path) -> bool:
     if name.endswith(".jsonl") and "normalized" in name and "event" in name:
         return True
     return False
+
+
+def sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
 
 
 def sha256_file(path: Path) -> str:
@@ -108,11 +120,84 @@ def iter_bundle_files(output_dir: Path, bundle_path: Path, privacy_mode: bool = 
     return selected, excluded_content
 
 
+def _normalize_mode(path_redaction_mode: str) -> str:
+    mode = (path_redaction_mode or "basename").strip().lower()
+    if mode not in PATH_REDACTION_MODES:
+        raise ValueError(f"unsupported path redaction mode: {path_redaction_mode}; expected basename, hash, or relative")
+    return mode
+
+
+def _redaction_token(raw: str, mode: str) -> str:
+    normalized = raw.replace("\\\\", "\\").replace("/", "\\")
+    parts = [p for p in re.split(r"[\\/]+", normalized) if p]
+    tail = parts[-1] if parts else "path"
+    if mode == "hash":
+        digest = hashlib.sha256(raw.encode("utf-8", errors="replace")).hexdigest().upper()[:16]
+        return f"<LOCAL_PATH_SHA256:{digest}>"
+    if mode == "relative":
+        if len(parts) >= 2:
+            return "<LOCAL_PATH>/" + "/".join(parts[-2:])
+        return f"<LOCAL_PATH>/{tail}"
+    return f"<LOCAL_PATH:{tail}>"
+
+
+def redact_local_paths_in_text(text: str, mode: str = "basename") -> str:
+    """Redact local absolute path strings from bundle copies of report text."""
+    safe_mode = _normalize_mode(mode)
+
+    def repl(match: re.Match[str]) -> str:
+        return _redaction_token(match.group(0), safe_mode)
+
+    out = WINDOWS_PATH_RE.sub(repl, text)
+    out = WINDOWS_GENERIC_PATH_RE.sub(repl, out)
+    out = POSIX_HOME_PATH_RE.sub(repl, out)
+    return out
+
+
+def _looks_like_path_string(value: str) -> bool:
+    return bool(WINDOWS_PATH_RE.search(value) or WINDOWS_GENERIC_PATH_RE.search(value) or POSIX_HOME_PATH_RE.search(value))
+
+
+def redact_local_paths_in_obj(value: Any, mode: str = "basename") -> Any:
+    if isinstance(value, dict):
+        return {k: redact_local_paths_in_obj(v, mode=mode) for k, v in value.items()}
+    if isinstance(value, list):
+        return [redact_local_paths_in_obj(v, mode=mode) for v in value]
+    if isinstance(value, str) and _looks_like_path_string(value):
+        return redact_local_paths_in_text(value, mode=mode)
+    return value
+
+
+def _maybe_redacted_file_bytes(path: Path, *, redact_paths: bool, path_redaction_mode: str) -> Tuple[bytes, bool]:
+    data = path.read_bytes()
+    if not redact_paths or path.suffix.lower() not in DEFAULT_INCLUDE_SUFFIXES:
+        return data, False
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data, False
+    redacted = text
+    if path.suffix.lower() == ".json":
+        try:
+            payload = json.loads(text)
+            payload = redact_local_paths_in_obj(payload, mode=path_redaction_mode)
+            redacted = json.dumps(payload, indent=2, ensure_ascii=False)
+        except Exception:
+            redacted = redact_local_paths_in_text(text, mode=path_redaction_mode)
+    else:
+        redacted = redact_local_paths_in_text(text, mode=path_redaction_mode)
+    if redacted == text:
+        return data, False
+    return redacted.encode("utf-8"), True
+
+
 def bundle_output_dir(
     output_dir: str,
     bundle_path: Optional[str] = None,
     manifest_name: str = "BUNDLE_MANIFEST.json",
     privacy_mode: bool = False,
+    redact_paths: bool = False,
+    path_redaction_mode: str = "basename",
 ) -> Dict[str, Any]:
     out = Path(output_dir).resolve()
     if not out.exists():
@@ -120,6 +205,7 @@ def bundle_output_dir(
     if not out.is_dir():
         raise NotADirectoryError(f"Output path is not a directory: {out}")
 
+    mode = _normalize_mode(path_redaction_mode)
     bundle = Path(bundle_path) if bundle_path else out / "pooleshield_results_bundle.zip"
     if not bundle.is_absolute():
         bundle = Path.cwd() / bundle
@@ -128,25 +214,32 @@ def bundle_output_dir(
     files, excluded_content_files = iter_bundle_files(out, bundle, privacy_mode=privacy_mode)
     created_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     manifest_entries: List[Dict[str, Any]] = []
+    redacted_file_count = 0
 
     with zipfile.ZipFile(bundle, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for path in files:
             rel = path.relative_to(out).as_posix()
-            digest = sha256_file(path)
+            file_bytes, was_redacted = _maybe_redacted_file_bytes(path, redact_paths=redact_paths, path_redaction_mode=mode)
+            if was_redacted:
+                redacted_file_count += 1
             manifest_entries.append({
                 "path": rel,
-                "size_bytes": path.stat().st_size,
-                "sha256": digest,
+                "size_bytes": len(file_bytes),
+                "sha256": sha256_bytes(file_bytes),
+                "path_redacted": bool(was_redacted),
             })
-            zf.write(path, rel)
+            zf.writestr(rel, file_bytes)
         if privacy_mode:
-            note = (
+            note_text = (
                 "# PooleShield Privacy Bundle\n\n"
                 "This bundle was created with privacy_mode=true. Content-bearing normalized JSONL/event files "
                 "and local review-evidence files were excluded so reports can be shared without uploading "
                 "full scanned chat/log text or matched snippet context. Policy decisions, risk scores, "
                 "labels, hashes, source paths, and review metadata remain.\n"
-            ).encode("utf-8")
+            )
+            if redact_paths:
+                note_text += "\nLocal absolute paths were redacted in bundle copies of text reports.\n"
+            note = note_text.encode("utf-8")
             manifest_entries.append({
                 "path": "PRIVACY_BUNDLE_NOTE.md",
                 "size_bytes": len(note),
@@ -159,9 +252,12 @@ def bundle_output_dir(
             "tool": "PooleShield result bundle",
             "version": VERSION,
             "generated_at": created_at,
-            "output_dir": str(out),
-            "bundle_path": str(bundle),
+            "output_dir": redact_local_paths_in_text(str(out), mode=mode) if redact_paths else str(out),
+            "bundle_path": redact_local_paths_in_text(str(bundle), mode=mode) if redact_paths else str(bundle),
             "privacy_mode": privacy_mode,
+            "redact_paths": bool(redact_paths),
+            "path_redaction_mode": mode if redact_paths else "none",
+            "redacted_file_count": redacted_file_count,
             "excluded_content_files": excluded_content_files,
             "file_count": len(manifest_entries),
             "files": manifest_entries,
@@ -178,6 +274,9 @@ def bundle_output_dir(
         "file_count": len(manifest_entries),
         "manifest_name": manifest_name,
         "privacy_mode": privacy_mode,
+        "redact_paths": bool(redact_paths),
+        "path_redaction_mode": mode if redact_paths else "none",
+        "redacted_file_count": redacted_file_count,
         "excluded_content_files": excluded_content_files,
         "files": manifest_entries,
     }
@@ -189,8 +288,16 @@ def main() -> int:
     parser.add_argument("--output-dir", required=True, help="PooleShield output folder to bundle")
     parser.add_argument("--bundle-path", default=None, help="Optional ZIP path. Default: <output-dir>/pooleshield_results_bundle.zip")
     parser.add_argument("--privacy-bundle", action="store_true", help="Exclude content-bearing normalized event JSONL files")
+    parser.add_argument("--redact-paths", action="store_true", help="Redact local absolute paths in bundled text/JSON reports")
+    parser.add_argument("--path-redaction-mode", choices=sorted(PATH_REDACTION_MODES), default="basename")
     args = parser.parse_args()
-    report = bundle_output_dir(args.output_dir, args.bundle_path, privacy_mode=args.privacy_bundle)
+    report = bundle_output_dir(
+        args.output_dir,
+        args.bundle_path,
+        privacy_mode=args.privacy_bundle,
+        redact_paths=args.redact_paths,
+        path_redaction_mode=args.path_redaction_mode,
+    )
     print(json.dumps(report, indent=2, ensure_ascii=False))
     return 0
 

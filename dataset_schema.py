@@ -176,7 +176,7 @@ def validate_record(record: Dict[str, Any], *, allow_raw_binary: bool = False) -
 
 def iter_jsonl(path: str | Path) -> Iterable[Dict[str, Any]]:
     p = Path(path)
-    with p.open("r", encoding="utf-8") as f:
+    with p.open("r", encoding="utf-8-sig") as f:
         for line_no, line in enumerate(f, start=1):
             text = line.strip()
             if not text:

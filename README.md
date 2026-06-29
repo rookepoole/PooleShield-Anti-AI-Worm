@@ -41,6 +41,24 @@ safe_corpus.status / safe_corpus.benchmark Engine API operations
 
 This is not malware download support. It is the safe benchmark step: feature vectors, metadata, labels, hashes, and synthetic fixtures only.
 
+
+## v5.4 candidate: safe external dataset dry-run
+
+This candidate patch adds a stronger tester path for external feature-only JSONL/CSV datasets. It validates and normalizes metadata/features only, rejects raw-binary flags, payload/download fields, and executable/archive sample paths, and can write a safe JSONL plus a rejection log.
+
+```powershell
+python .\pooleshield_operator.py safe-dataset-dry-run `
+  --input .\examples\safe_corpus\external_feature_dry_run_sample.jsonl `
+  --source external_sample `
+  --output-dir .\out\safe_dataset_dry_run_v5_4 `
+  --clean-output `
+  --write-safe-jsonl `
+  --bundle-output `
+  --privacy-bundle
+```
+
+Safety boundary: no malware downloads, no execution, no archive unpacking, no opening paths referenced inside rows, no quarantine/delete actions, and no raw-content upload.
+
 ## Quick local checks
 
 ```powershell

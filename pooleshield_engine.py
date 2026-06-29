@@ -44,7 +44,7 @@ from scan_history import (
 )
 from scan_profiles import ScanProfileError, get_scan_profile, profile_catalog
 
-VERSION = "5.3.0"
+VERSION = "5.4.2"
 ENGINE_API_VERSION = "1"
 
 SUPPORTED_OPERATIONS = (
@@ -69,6 +69,7 @@ SUPPORTED_OPERATIONS = (
     "release.manifest",
     "safe_corpus.status",
     "safe_corpus.benchmark",
+    "safe_dataset.dry_run",
     "file_av.scan_baseline",
     "results.load",
     "baseline.load",
@@ -266,6 +267,8 @@ def safe_corpus_benchmark(
     bundle_output: bool = False,
     bundle_path: Optional[str] = None,
     privacy_bundle: bool = True,
+    redact_paths: bool = False,
+    path_redaction_mode: str = "basename",
 ) -> Dict[str, Any]:
     from pooleshield_benchmark import run_safe_corpus_benchmark
     summary = run_safe_corpus_benchmark(
@@ -278,8 +281,48 @@ def safe_corpus_benchmark(
         bundle_output=bundle_output,
         bundle_path=bundle_path,
         privacy_bundle=privacy_bundle,
+        redact_paths=redact_paths,
+        path_redaction_mode=path_redaction_mode,
     )
     return _with_engine_metadata(summary, "safe_corpus.benchmark")
+
+
+def safe_dataset_dry_run(
+    input_path: str,
+    output_dir: str = "out/safe_dataset_dry_run",
+    clean_output: bool = False,
+    source: str = "external",
+    input_format: str = "auto",
+    limit: Optional[int] = None,
+    preview_limit: int = 50,
+    write_safe_jsonl: bool = False,
+    strict_path_fields: bool = True,
+    allow_url_metadata: bool = False,
+    bundle_output: bool = False,
+    bundle_path: Optional[str] = None,
+    privacy_bundle: bool = True,
+    redact_paths: bool = True,
+    path_redaction_mode: str = "basename",
+) -> Dict[str, Any]:
+    from safe_dataset_lab import run_safe_dataset_dry_run
+    summary = run_safe_dataset_dry_run(
+        input_path=input_path,
+        output_dir=output_dir,
+        clean_output=clean_output,
+        source=source,
+        input_format=input_format,
+        limit=limit,
+        preview_limit=preview_limit,
+        write_safe_jsonl=write_safe_jsonl,
+        strict_path_fields=strict_path_fields,
+        allow_url_metadata=allow_url_metadata,
+        bundle_output=bundle_output,
+        bundle_path=bundle_path,
+        privacy_bundle=privacy_bundle,
+        redact_paths=redact_paths,
+        path_redaction_mode=path_redaction_mode,
+    )
+    return _with_engine_metadata(summary, "safe_dataset.dry_run")
 
 
 def _resolve_history_db(config: Optional[str] = None, history_db: Optional[str] = None) -> str:
@@ -878,6 +921,7 @@ def dispatch(request: Dict[str, Any]) -> Dict[str, Any]:
         "release.manifest": release_manifest,
         "safe_corpus.status": safe_corpus_status,
         "safe_corpus.benchmark": safe_corpus_benchmark,
+        "safe_dataset.dry_run": safe_dataset_dry_run,
         "file_av.scan_baseline": file_av_scan_baseline,
         "results.load": results_load,
         "baseline.load": baseline_load,
