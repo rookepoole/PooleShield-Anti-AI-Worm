@@ -44,7 +44,7 @@ from scan_history import (
 )
 from scan_profiles import ScanProfileError, get_scan_profile, profile_catalog
 
-VERSION = "5.2.1"
+VERSION = "5.3.0"
 ENGINE_API_VERSION = "1"
 
 SUPPORTED_OPERATIONS = (
@@ -67,6 +67,8 @@ SUPPORTED_OPERATIONS = (
     "installer.plan",
     "release.status",
     "release.manifest",
+    "safe_corpus.status",
+    "safe_corpus.benchmark",
     "file_av.scan_baseline",
     "results.load",
     "baseline.load",
@@ -228,6 +230,56 @@ def release_manifest(
     from release_manifest import build_release_manifest
     summary = build_release_manifest(root=root, release_version=release_version, portable_dir=portable_dir, installer_path=installer_path, app_name=app_name)
     return _with_engine_metadata(summary, "release.manifest")
+
+
+
+def safe_corpus_status(dataset: str, source: str = "generic") -> Dict[str, Any]:
+    from dataset_schema import load_safe_corpus, summarize_records, corpus_sha256
+    records = load_safe_corpus(dataset, source=source, allow_raw_binary=False)
+    summary = {
+        "tool": "PooleShield safe corpus status",
+        "version": VERSION,
+        "mode": "safe-corpus-status",
+        "dataset": str(Path(dataset).resolve()),
+        "summary": summarize_records(records),
+        "corpus_sha256": corpus_sha256(records),
+        "safety_boundary": {
+            "features_only": True,
+            "raw_binaries_loaded": False,
+            "malware_samples_downloaded": False,
+            "artifacts_executed": False,
+            "files_deleted": False,
+            "files_quarantined": False,
+            "network_uploads": False,
+        },
+    }
+    return _with_engine_metadata(summary, "safe_corpus.status")
+
+
+def safe_corpus_benchmark(
+    dataset: str,
+    output_dir: str = "out/safe_corpus_benchmark",
+    clean_output: bool = False,
+    source: str = "generic",
+    require_approval_threshold: float = 0.35,
+    block_threshold: float = 0.75,
+    bundle_output: bool = False,
+    bundle_path: Optional[str] = None,
+    privacy_bundle: bool = True,
+) -> Dict[str, Any]:
+    from pooleshield_benchmark import run_safe_corpus_benchmark
+    summary = run_safe_corpus_benchmark(
+        dataset=dataset,
+        output_dir=output_dir,
+        clean_output=clean_output,
+        source=source,
+        require_approval_threshold=require_approval_threshold,
+        block_threshold=block_threshold,
+        bundle_output=bundle_output,
+        bundle_path=bundle_path,
+        privacy_bundle=privacy_bundle,
+    )
+    return _with_engine_metadata(summary, "safe_corpus.benchmark")
 
 
 def _resolve_history_db(config: Optional[str] = None, history_db: Optional[str] = None) -> str:
@@ -552,7 +604,7 @@ def results_load(
     text: Optional[str] = None,
     limit: int = 500,
 ) -> Dict[str, Any]:
-    """Load metadata-only scan results for the v5.2.1 Results UI.
+    """Load metadata-only scan results for the v5.3.0 Results UI.
 
     This reads PooleShield output JSON reports only. It does not open scanned
     files, execute anything, modify the scanned corpus, or include matched file
@@ -824,6 +876,8 @@ def dispatch(request: Dict[str, Any]) -> Dict[str, Any]:
         "installer.plan": installer_plan,
         "release.status": release_status,
         "release.manifest": release_manifest,
+        "safe_corpus.status": safe_corpus_status,
+        "safe_corpus.benchmark": safe_corpus_benchmark,
         "file_av.scan_baseline": file_av_scan_baseline,
         "results.load": results_load,
         "baseline.load": baseline_load,

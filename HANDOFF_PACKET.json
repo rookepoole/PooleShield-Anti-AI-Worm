@@ -1,11 +1,11 @@
 {
   "tool": "PooleShield",
-  "version": "5.2.1",
+  "version": "5.3.0",
   "release_type": "continuity_handoff",
   "last_updated": "2026-06-28",
   "mission": "Privacy-first, defensive, non-executing second-opinion scanner for suspicious files, archives, scripts, AI-agent logs, exported data bundles, and local workflow artifacts.",
-  "current_release": "v5.2",
-  "current_milestone": "Release packaging and integrity manifest path",
+  "current_release": "v5.3",
+  "current_milestone": "Safe Corpus + Benchmark Harness",
   "safety_boundary": {
     "allowed": [
       "read local files for static scanning",
@@ -85,7 +85,7 @@
     "history_record_scan_id": 1,
     "bundle_hash_mismatches": 0
   },
-  "current_next_best_move": "Test v5.2 locally with pytest, repo safety check, privacy leak check, and release-manifest against the verified portable folder and installer executable. Upload metadata-only release-manifest verification ZIP before pushing v5.2.",
+  "current_next_best_move": "Test v5.3 locally with pytest, repo safety, privacy check, safe-corpus-status, and safe-corpus-benchmark. Upload the privacy-safe benchmark bundle before pushing v5.3.",
   "new_files_v5_1": [
     "installer_build.py",
     "build_installer_windows.ps1",
@@ -109,5 +109,20 @@
     "release-manifest",
     "release-manifest --status",
     "release-manifest --notes-output"
+  ],
+  "new_files_v5_3": [
+    "dataset_schema.py",
+    "pooleshield_benchmark.py",
+    "dataset_adapters/eicar_fixture_adapter.py",
+    "dataset_adapters/ember_adapter.py",
+    "dataset_adapters/sorel_adapter.py",
+    "SAFE_CORPUS_GUIDE.md",
+    "examples/safe_corpus/tiny_feature_dataset.jsonl",
+    "tests/test_safe_corpus.py"
+  ],
+  "new_commands_v5_3": [
+    "safe-corpus-status",
+    "safe-corpus-fixture",
+    "safe-corpus-benchmark"
   ]
 }

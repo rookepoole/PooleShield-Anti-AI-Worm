@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-VERSION = "5.2.1"
+VERSION = "5.3.0"
 
 
 def runtime_status() -> dict:

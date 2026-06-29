@@ -1,6 +1,6 @@
-# PooleShield v5.2.1 Windows Installer Build Guide
+# PooleShield v5.3.0 Windows Installer Build Guide
 
-PooleShield v5.2.1 adds local Windows installer tooling for the already-built portable app.
+PooleShield v5.3.0 adds local Windows installer tooling for the already-built portable app.
 
 The installer path is still local and explicit:
 
@@ -11,7 +11,7 @@ The installer path is still local and explicit:
 - it does not include local configs, baselines, history databases, scan outputs, or result bundles
 
 
-## v5.2.1 patch note
+## v5.3.0 patch note
 
 `installer-build --run-iscc --portable-dir ...` now forwards the supplied portable folder into the final compile step. You no longer need to copy the portable app into `dist/PooleShield` as a workaround.
 

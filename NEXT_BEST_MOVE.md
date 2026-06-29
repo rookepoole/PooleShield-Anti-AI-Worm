@@ -1,35 +1,21 @@
 # Next Best Move
 
-Test PooleShield v5.2 locally and verify release-manifest packaging.
+Test PooleShield v5.3 locally and verify the Safe Corpus + Benchmark Harness.
 
-v5.2 adds metadata-only release integrity manifests and release-note drafts for the already verified portable folder and installer executable.
+v5.3 is intentionally safe: it uses feature/metadata JSONL records and synthetic fixtures only. Do not download, commit, unpack, or execute live malware samples.
 
 ```powershell
 python -m pytest -q
 python .\tools\repo_safety_check.py --root .
 python .\tools\privacy_leak_check.py --root .
-python .\pooleshield_operator.py release-manifest --help
+python .\pooleshield_operator.py safe-corpus-status --dataset .\examples\safe_corpus\tiny_feature_dataset.jsonl --output .\safe_corpus_status_response.json
+python .\pooleshield_operator.py safe-corpus-benchmark --dataset .\examples\safe_corpus\tiny_feature_dataset.jsonl --output-dir .\out\safe_corpus_v5_3 --clean-output --bundle-output --privacy-bundle
 ```
 
-Create a release status response:
+Upload only:
 
-```powershell
-python .\pooleshield_operator.py release-manifest `
-  --status `
-  --portable-dir C:\Users\rookp\Desktop\PooleShieldPortable_v5_0_RELEASE `
-  --installer-path C:\path\to\PooleShieldSetup.exe `
-  --output .\release_status_response.json
+```text
+out\safe_corpus_v5_3\pooleshield_results_bundle.zip
 ```
 
-Create the release manifest and release notes draft:
-
-```powershell
-python .\pooleshield_operator.py release-manifest `
-  --release-version 5.2.1 `
-  --portable-dir C:\Users\rookp\Desktop\PooleShieldPortable_v5_0_RELEASE `
-  --installer-path C:\path\to\PooleShieldSetup.exe `
-  --output .\release_manifest_response.json `
-  --notes-output .\release_notes_draft.md
-```
-
-Upload the metadata-only release-manifest verification ZIP, not the installer executable or portable folder.
+If the bundle verifies clean, push v5.3. After v5.3, improve code-tester onboarding around how to bring EMBER/SOREL-style feature rows without adding raw samples.

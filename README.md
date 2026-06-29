@@ -1,8 +1,9 @@
-﻿# PooleShield v5.2.1
+# PooleShield v5.3.0
 
 PooleShield is a privacy-first second-opinion defensive scanner for suspicious files, archives, scripts, AI-agent logs, exported chat/data bundles, and local workflow artifacts.
 
 PooleShield is defensive only. It reads local artifacts, scores static/local risk signals, and writes review reports. It does **not** execute scanned content, follow links, send emails, delete files, quarantine files, kill processes, install drivers, or modify the scanned corpus.
+
 ## Latest public pre-release
 
 PooleShield v5.2.1 is available as a public GitHub pre-release:
@@ -20,21 +21,25 @@ Expected SHA256 values:
 - 7CF9E6978DFC929E72DC45A0E8828F7841250B43ADEEFB6352515469B5C41831  PooleShieldPortable_v5.2.1.zip
 - D9CEEDCB7B109C04BA68C7CA875EABABF959AA245D7A74BCDC95F37E6CB5C3E6  PooleShieldSetup_v5.2.1.exe
 
+## v5.3 milestone
 
-## v5.2 milestone
-
-v5.2 adds release packaging and integrity-manifest tooling for already-built local release artifacts:
+v5.3 adds a safe corpus and benchmark harness for code testers:
 
 ```text
-release_manifest.py
-RELEASE_PACKAGING_GUIDE.md
-release-manifest CLI command
-release.status / release.manifest Engine API operations
-SHA256 checksum generation
-release notes draft generation
+dataset_schema.py
+pooleshield_benchmark.py
+dataset_adapters/eicar_fixture_adapter.py
+dataset_adapters/ember_adapter.py
+dataset_adapters/sorel_adapter.py
+SAFE_CORPUS_GUIDE.md
+examples/safe_corpus/tiny_feature_dataset.jsonl
+safe-corpus-status CLI command
+safe-corpus-fixture CLI command
+safe-corpus-benchmark CLI command
+safe_corpus.status / safe_corpus.benchmark Engine API operations
 ```
 
-This is not a new detection feature. It is the clean release step after the verified v5.0 portable build, v5.1 installer tooling, v5.1.1 installer patch, and installer install/uninstall smoke test.
+This is not malware download support. It is the safe benchmark step: feature vectors, metadata, labels, hashes, and synthetic fixtures only.
 
 ## Quick local checks
 
@@ -43,21 +48,25 @@ python -m pytest -q
 python .\tools\repo_safety_check.py --root .
 python .\tools\privacy_leak_check.py --root .
 python .\pooleshield_operator.py desktop --status
-python .\pooleshield_operator.py release-manifest --help
+python .\pooleshield_operator.py safe-corpus-benchmark --dataset .\examples\safe_corpus\tiny_feature_dataset.jsonl --output-dir .\out\safe_corpus_v5_3 --clean-output
 ```
 
-## Release manifest smoke test
+## Safe corpus benchmark smoke test
 
 ```powershell
-python .\pooleshield_operator.py release-manifest `
-  --release-version 5.2.1 `
-  --portable-dir C:\Users\rookp\Desktop\PooleShieldPortable_v5_0_RELEASE `
-  --installer-path C:\path\to\PooleShieldSetup.exe `
-  --output .\release_manifest_response.json `
-  --notes-output .\release_notes_draft.md
+python .\pooleshield_operator.py safe-corpus-benchmark `
+  --dataset .\examples\safe_corpus\tiny_feature_dataset.jsonl `
+  --output-dir .\out\safe_corpus_v5_3 `
+  --clean-output `
+  --bundle-output `
+  --privacy-bundle
 ```
 
-Do not commit release manifests, release notes drafts, installer outputs, build folders, generated scripts, result bundles, local configs, baselines, or history databases unless intentionally curated later.
+Upload only the generated privacy bundle if you want review:
+
+```text
+out\safe_corpus_v5_3\pooleshield_results_bundle.zip
+```
 
 ## Privacy rules
 
@@ -81,4 +90,3 @@ release_notes_draft.md
 ```
 
 The file AV scanner does not include raw file contents or matched snippets in its reports.
-
