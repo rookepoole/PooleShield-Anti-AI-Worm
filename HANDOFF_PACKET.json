@@ -1,6 +1,6 @@
 {
   "tool": "PooleShield",
-  "version": "3.7.0",
+  "version": "3.8.0",
   "release_type": "continuity_handoff",
   "last_updated": "2026-06-28",
   "mission": "Defensive, non-executing AI-worm and prompt-contamination protection using Poole Math local-defect logic.",
@@ -47,7 +47,7 @@
     "bundle_hash_mismatches": 0
   },
   "current_release": "v1.9",
-  "next_best_move": "test v3.7 config-driven scan and push if clean",
+  "next_best_move": "test v3.8 config-driven scan and push if clean",
   "new_files_v1_9": [
     "review_evidence.py",
     "REVIEW_EVIDENCE_GUIDE.md"

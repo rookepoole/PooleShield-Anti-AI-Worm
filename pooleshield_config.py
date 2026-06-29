@@ -14,10 +14,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-VERSION = "3.7.0"
+VERSION = "3.8.0"
 CONFIG_FILENAMES = ("pooleshield_config.json", ".pooleshield_config.json")
 RISK_PROFILES = {"standard", "developer"}
 POLICY_PROFILES = {"balanced", "strict"}
+from scan_profiles import SCAN_PROFILE_NAMES, get_scan_profile, validate_scan_profile_overrides
 
 
 class PooleShieldConfigError(ValueError):
@@ -35,6 +36,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "file_av_baseline_scan_output_dir": "out/file_av_baseline_scan",
         "rule_pack": "examples/rule_packs/file_av_rules.default.json",
         "baseline": "local_trust/trusted_file_baseline.json",
+        "scan_profile": "standard",
         "risk_profile": "standard",
         "policy_profile": "balanced",
         "privacy_bundle": True,
@@ -136,9 +138,13 @@ def validate_config(cfg: Dict[str, Any], config_path: Optional[Path] = None, req
         errors.append("safety must be an object")
         safety = {}
 
+    scan_profile = defaults.get("scan_profile", "standard")
+    if scan_profile not in SCAN_PROFILE_NAMES:
+        errors.append(f"defaults.scan_profile must be one of {list(SCAN_PROFILE_NAMES)}")
     risk_profile = defaults.get("risk_profile")
     if risk_profile not in RISK_PROFILES:
         errors.append(f"defaults.risk_profile must be one of {sorted(RISK_PROFILES)}")
+    errors.extend(validate_scan_profile_overrides(cfg.get("scan_profiles")))
     policy_profile = defaults.get("policy_profile")
     if policy_profile not in POLICY_PROFILES:
         errors.append(f"defaults.policy_profile must be one of {sorted(POLICY_PROFILES)}")
@@ -200,27 +206,48 @@ def resolve_file_av_baseline_scan_options(args: Any) -> Dict[str, Any]:
     limits = cfg.get("limits", {})
     base_dir = config_path.parent if config_path else Path.cwd()
 
+    scan_profile_name = getattr(args, "scan_profile", None) or defaults.get("scan_profile", "standard")
+    try:
+        scan_profile = get_scan_profile(scan_profile_name, cfg.get("scan_profiles"))
+    except Exception as exc:
+        raise PooleShieldConfigError(str(exc)) from exc
+
     baseline = getattr(args, "baseline", None) or defaults.get("baseline")
     if not baseline:
         raise PooleShieldConfigError("baseline is required; pass --baseline or set defaults.baseline in config")
     output_dir = getattr(args, "output_dir", None) or defaults.get("file_av_baseline_scan_output_dir") or "out/file_av_baseline_scan"
-    risk_profile = getattr(args, "risk_profile", None) or defaults.get("risk_profile", "standard")
+    # Scan profile supplies the file-AV engine profile. --risk-profile remains an explicit override.
+    # Keep backward compatibility with v3.7 configs that set defaults.risk_profile=developer.
+    configured_risk_profile = defaults.get("risk_profile", "standard")
+    profile_risk_profile = scan_profile.get("risk_profile", "standard")
+    effective_config_risk = configured_risk_profile if configured_risk_profile != "standard" else profile_risk_profile
+    risk_profile = getattr(args, "risk_profile", None) or effective_config_risk
     rule_pack = getattr(args, "rule_pack", None) or defaults.get("rule_pack")
+
+    recursive = bool(scan_profile.get("recursive", True)) and not bool(getattr(args, "no_recursive", False))
+    include_hidden = bool(scan_profile.get("include_hidden", False)) or bool(getattr(args, "include_hidden", False))
+    scan_archives = bool(scan_profile.get("scan_archives", True)) and not bool(getattr(args, "no_archives", False))
 
     resolved = {
         "baseline": expand_config_path(baseline, base_dir=base_dir),
         "output_dir": expand_config_path(output_dir, base_dir=base_dir) or "out/file_av_baseline_scan",
+        "scan_profile": scan_profile_name,
+        "scan_profile_settings": scan_profile,
+        "recursive": recursive,
+        "include_hidden": include_hidden,
+        "scan_archives": scan_archives,
         "risk_profile": risk_profile,
         "rule_pack": expand_config_path(rule_pack, base_dir=base_dir) if rule_pack else None,
-        "max_bytes_per_file": getattr(args, "max_bytes_per_file", None) or limits.get("max_bytes_per_file", 5 * 1024 * 1024),
-        "max_archive_entries": getattr(args, "max_archive_entries", None) or limits.get("max_archive_entries", 500),
-        "max_archive_entry_bytes": getattr(args, "max_archive_entry_bytes", None) or limits.get("max_archive_entry_bytes", 2 * 1024 * 1024),
-        "privacy_bundle": getattr(args, "privacy_bundle", defaults.get("privacy_bundle", True)),
+        "max_bytes_per_file": getattr(args, "max_bytes_per_file", None) or scan_profile.get("max_bytes_per_file") or limits.get("max_bytes_per_file", 5 * 1024 * 1024),
+        "max_archive_entries": getattr(args, "max_archive_entries", None) or scan_profile.get("max_archive_entries") or limits.get("max_archive_entries", 500),
+        "max_archive_entry_bytes": getattr(args, "max_archive_entry_bytes", None) or scan_profile.get("max_archive_entry_bytes") or limits.get("max_archive_entry_bytes", 2 * 1024 * 1024),
+        "privacy_bundle": getattr(args, "privacy_bundle", defaults.get("privacy_bundle", scan_profile.get("privacy_bundle", True))),
         "bundle_output": getattr(args, "bundle_output", defaults.get("bundle_output", False)),
         "config_summary": {
             "config_path": str(config_path) if config_path else None,
             "used_config_file": config_path is not None,
             "validation": validation,
+            "scan_profile": scan_profile,
         },
     }
     if resolved["risk_profile"] not in RISK_PROFILES:

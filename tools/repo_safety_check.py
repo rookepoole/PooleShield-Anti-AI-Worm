@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
 
-VERSION = "3.7.0"
+VERSION = "3.8.0"
 
 FORBIDDEN_DIR_NAMES = {
     "out",

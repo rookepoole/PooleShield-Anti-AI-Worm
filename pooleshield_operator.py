@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PooleShield v3.7.0 operator CLI.
+PooleShield v3.8.0 operator CLI.
 
 Defensive purpose:
   Provide a real operator workflow for scanning folders/log exports, producing
@@ -41,8 +41,9 @@ from pooleshield_config import (
     resolve_file_av_baseline_scan_options, resolve_rule_pack_validate_options,
     PooleShieldConfigError,
 )
+from scan_profiles import SCAN_PROFILE_NAMES, get_scan_profile, profile_catalog, ScanProfileError
 
-VERSION = "3.7.0"
+VERSION = "3.8.0"
 
 
 def policy_path_for(profile: str) -> str:
@@ -775,7 +776,7 @@ def run_dat_batch(
     return summary
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="PooleShield v3.7 real operator workflow")
+    parser = argparse.ArgumentParser(description="PooleShield v3.8 real operator workflow")
     sub = parser.add_subparsers(dest="command", required=True)
 
     config_init = sub.add_parser("config-init", help="Create a local PooleShield config JSON")
@@ -788,6 +789,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     config_show = sub.add_parser("config-show", help="Show effective PooleShield config after defaults are merged")
     config_show.add_argument("--config", default=None, help="Config path. Default: auto-detect pooleshield_config.json or use built-in defaults")
+
+    profile_list = sub.add_parser("profile-list", help="List built-in file-AV scan profiles")
+    profile_list.add_argument("--config", default=None, help="Optional config path with scan_profiles overrides")
+
+    profile_show = sub.add_parser("profile-show", help="Show one effective file-AV scan profile")
+    profile_show.add_argument("--name", choices=list(SCAN_PROFILE_NAMES), required=True)
+    profile_show.add_argument("--config", default=None, help="Optional config path with scan_profiles overrides")
 
     scan = sub.add_parser("scan", help="Scan real folders/log exports and create a review queue/template")
     scan.add_argument("--path", "-p", nargs="+", required=True, help="File/folder path(s) to scan")
@@ -929,11 +937,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     av_scan.add_argument("--clean-output", action="store_true")
     av_scan.add_argument("--no-recursive", action="store_true")
     av_scan.add_argument("--include-hidden", action="store_true")
-    av_scan.add_argument("--max-bytes-per-file", type=int, default=5 * 1024 * 1024)
-    av_scan.add_argument("--max-archive-entries", type=int, default=500)
-    av_scan.add_argument("--max-archive-entry-bytes", type=int, default=2 * 1024 * 1024)
+    av_scan.add_argument("--max-bytes-per-file", type=int, default=None)
+    av_scan.add_argument("--max-archive-entries", type=int, default=None)
+    av_scan.add_argument("--max-archive-entry-bytes", type=int, default=None)
     av_scan.add_argument("--no-archives", action="store_true")
-    av_scan.add_argument("--risk-profile", choices=["standard", "developer"], default="standard")
+    av_scan.add_argument("--scan-profile", choices=list(SCAN_PROFILE_NAMES), default="standard", help="Named scan-intensity profile")
+    av_scan.add_argument("--risk-profile", choices=["standard", "developer"], default=None, help="Optional override for the profile risk setting")
     av_scan.add_argument("--rule-pack", default=None, help="Optional local JSON rule pack for extra static file-AV labels/risk deltas")
     av_scan.add_argument("--bundle-output", action="store_true")
     av_scan.add_argument("--bundle-path", default=None)
@@ -943,11 +952,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     scan_file_cmd.add_argument("--path", "-p", nargs="+", required=True)
     scan_file_cmd.add_argument("--output-dir", default="out/file_av_scan")
     scan_file_cmd.add_argument("--clean-output", action="store_true")
-    scan_file_cmd.add_argument("--max-bytes-per-file", type=int, default=5 * 1024 * 1024)
-    scan_file_cmd.add_argument("--max-archive-entries", type=int, default=500)
-    scan_file_cmd.add_argument("--max-archive-entry-bytes", type=int, default=2 * 1024 * 1024)
+    scan_file_cmd.add_argument("--max-bytes-per-file", type=int, default=None)
+    scan_file_cmd.add_argument("--max-archive-entries", type=int, default=None)
+    scan_file_cmd.add_argument("--max-archive-entry-bytes", type=int, default=None)
     scan_file_cmd.add_argument("--no-archives", action="store_true")
-    scan_file_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default="standard")
+    scan_file_cmd.add_argument("--scan-profile", choices=list(SCAN_PROFILE_NAMES), default="standard", help="Named scan-intensity profile")
+    scan_file_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default=None, help="Optional override for the profile risk setting")
     scan_file_cmd.add_argument("--rule-pack", default=None, help="Optional local JSON rule pack for extra static file-AV labels/risk deltas")
     scan_file_cmd.add_argument("--bundle-output", action="store_true")
     scan_file_cmd.add_argument("--bundle-path", default=None)
@@ -959,11 +969,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     scan_folder_cmd.add_argument("--clean-output", action="store_true")
     scan_folder_cmd.add_argument("--no-recursive", action="store_true")
     scan_folder_cmd.add_argument("--include-hidden", action="store_true")
-    scan_folder_cmd.add_argument("--max-bytes-per-file", type=int, default=5 * 1024 * 1024)
-    scan_folder_cmd.add_argument("--max-archive-entries", type=int, default=500)
-    scan_folder_cmd.add_argument("--max-archive-entry-bytes", type=int, default=2 * 1024 * 1024)
+    scan_folder_cmd.add_argument("--max-bytes-per-file", type=int, default=None)
+    scan_folder_cmd.add_argument("--max-archive-entries", type=int, default=None)
+    scan_folder_cmd.add_argument("--max-archive-entry-bytes", type=int, default=None)
     scan_folder_cmd.add_argument("--no-archives", action="store_true")
-    scan_folder_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default="standard")
+    scan_folder_cmd.add_argument("--scan-profile", choices=list(SCAN_PROFILE_NAMES), default="standard", help="Named scan-intensity profile")
+    scan_folder_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default=None, help="Optional override for the profile risk setting")
     scan_folder_cmd.add_argument("--rule-pack", default=None, help="Optional local JSON rule pack for extra static file-AV labels/risk deltas")
     scan_folder_cmd.add_argument("--bundle-output", action="store_true")
     scan_folder_cmd.add_argument("--bundle-path", default=None)
@@ -973,10 +984,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     scan_archive_cmd.add_argument("--path", "-p", nargs="+", required=True)
     scan_archive_cmd.add_argument("--output-dir", default="out/archive_av_scan")
     scan_archive_cmd.add_argument("--clean-output", action="store_true")
-    scan_archive_cmd.add_argument("--max-bytes-per-file", type=int, default=5 * 1024 * 1024)
-    scan_archive_cmd.add_argument("--max-archive-entries", type=int, default=500)
-    scan_archive_cmd.add_argument("--max-archive-entry-bytes", type=int, default=2 * 1024 * 1024)
-    scan_archive_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default="standard")
+    scan_archive_cmd.add_argument("--max-bytes-per-file", type=int, default=None)
+    scan_archive_cmd.add_argument("--max-archive-entries", type=int, default=None)
+    scan_archive_cmd.add_argument("--max-archive-entry-bytes", type=int, default=None)
+    scan_archive_cmd.add_argument("--scan-profile", choices=list(SCAN_PROFILE_NAMES), default="archive-heavy", help="Named scan-intensity profile")
+    scan_archive_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default=None, help="Optional override for the profile risk setting")
     scan_archive_cmd.add_argument("--rule-pack", default=None, help="Optional local JSON rule pack for extra static file-AV labels/risk deltas")
     scan_archive_cmd.add_argument("--bundle-output", action="store_true")
     scan_archive_cmd.add_argument("--bundle-path", default=None)
@@ -1012,7 +1024,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     file_av_scan_baseline_cmd.add_argument("--max-archive-entries", type=int, default=None)
     file_av_scan_baseline_cmd.add_argument("--max-archive-entry-bytes", type=int, default=None)
     file_av_scan_baseline_cmd.add_argument("--no-archives", action="store_true")
-    file_av_scan_baseline_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default=None)
+    file_av_scan_baseline_cmd.add_argument("--scan-profile", choices=list(SCAN_PROFILE_NAMES), default=None, help="Named scan-intensity profile; default can come from config")
+    file_av_scan_baseline_cmd.add_argument("--risk-profile", choices=["standard", "developer"], default=None, help="Optional override for the profile risk setting")
     file_av_scan_baseline_cmd.add_argument("--rule-pack", default=None, help="Optional local JSON rule pack for extra static file-AV labels/risk deltas")
     file_av_scan_baseline_cmd.add_argument("--bundle-output", action="store_true")
     file_av_scan_baseline_cmd.add_argument("--bundle-path", default=None)
@@ -1080,6 +1093,29 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             "effective_config": cfg,
         }
         print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0
+
+    if args.command == "profile-list":
+        cfg, config_path, validation = load_and_validate_config(args.config)
+        summary = profile_catalog(cfg.get("scan_profiles"))
+        summary["config_path"] = str(config_path) if config_path else None
+        summary["validation"] = validation
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0
+
+    if args.command == "profile-show":
+        cfg, config_path, validation = load_and_validate_config(args.config)
+        try:
+            profile = get_scan_profile(args.name, cfg.get("scan_profiles"))
+        except ScanProfileError as exc:
+            raise PooleShieldConfigError(str(exc)) from exc
+        print(json.dumps({
+            "tool": "PooleShield scan profile",
+            "version": VERSION,
+            "config_path": str(config_path) if config_path else None,
+            "validation": validation,
+            "profile": profile,
+        }, indent=2, ensure_ascii=False))
         return 0
 
     if args.command == "scan":
@@ -1241,17 +1277,22 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             write_json(str(Path(args.output_dir) / "batch_rollup.json"), summary)
 
     elif args.command in {"av-scan", "scan-file", "scan-folder", "scan-archive"}:
+        profile = get_scan_profile(getattr(args, "scan_profile", "standard"))
+        recursive = bool(profile.get("recursive", True)) and (not getattr(args, "no_recursive", False)) if args.command not in {"scan-file", "scan-archive"} else False
+        include_hidden = bool(profile.get("include_hidden", False)) or bool(getattr(args, "include_hidden", False))
+        scan_archives = bool(profile.get("scan_archives", True)) and not bool(getattr(args, "no_archives", False))
         summary = run_file_av_scan(
             paths=args.path,
             output_dir=args.output_dir,
             clean_output=args.clean_output,
-            recursive=not getattr(args, "no_recursive", True) if args.command != "scan-file" and args.command != "scan-archive" else False,
-            include_hidden=getattr(args, "include_hidden", False),
-            max_bytes_per_file=args.max_bytes_per_file,
-            max_archive_entries=args.max_archive_entries,
-            max_archive_entry_bytes=args.max_archive_entry_bytes,
-            scan_archives=not getattr(args, "no_archives", False),
-            risk_profile=getattr(args, "risk_profile", "standard"),
+            recursive=recursive,
+            include_hidden=include_hidden,
+            max_bytes_per_file=args.max_bytes_per_file or profile.get("max_bytes_per_file"),
+            max_archive_entries=args.max_archive_entries or profile.get("max_archive_entries"),
+            max_archive_entry_bytes=args.max_archive_entry_bytes or profile.get("max_archive_entry_bytes"),
+            scan_archives=scan_archives,
+            risk_profile=getattr(args, "risk_profile", None) or profile.get("risk_profile", "standard"),
+            scan_profile=profile.get("name"),
             rule_pack=getattr(args, "rule_pack", None),
             mode=args.command,
             bundle_output=args.bundle_output,
@@ -1285,13 +1326,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             baseline=resolved["baseline"],
             output_dir=resolved["output_dir"],
             clean_output=args.clean_output,
-            recursive=not args.no_recursive,
-            include_hidden=args.include_hidden,
+            recursive=resolved["recursive"],
+            include_hidden=resolved["include_hidden"],
             max_bytes_per_file=resolved["max_bytes_per_file"],
             max_archive_entries=resolved["max_archive_entries"],
             max_archive_entry_bytes=resolved["max_archive_entry_bytes"],
-            scan_archives=not args.no_archives,
+            scan_archives=resolved["scan_archives"],
             risk_profile=resolved["risk_profile"],
+            scan_profile=resolved["scan_profile"],
             rule_pack=resolved["rule_pack"],
             bundle_output=args.bundle_output,
             bundle_path=args.bundle_path,

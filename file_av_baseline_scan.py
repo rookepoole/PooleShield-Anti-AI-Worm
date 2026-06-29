@@ -23,7 +23,7 @@ from file_av_baseline import apply_file_av_baseline, norm_list
 from result_bundler import bundle_output_dir
 from file_av_final_summary import build_final_scan_summary
 
-VERSION = "3.7.0"
+VERSION = "3.8.0"
 REVIEW_DECISIONS = {"REQUIRE_APPROVAL", "BLOCK", "QUARANTINE"}
 
 
@@ -133,6 +133,7 @@ def run_file_av_scan_with_baseline(
     max_archive_entry_bytes: int = 2 * 1024 * 1024,
     scan_archives: bool = True,
     risk_profile: str = "standard",
+    scan_profile: Optional[str] = None,
     rule_pack: Optional[str] = None,
     bundle_output: bool = False,
     bundle_path: Optional[str] = None,
@@ -149,6 +150,7 @@ def run_file_av_scan_with_baseline(
         max_archive_entry_bytes=max_archive_entry_bytes,
         scan_archives=scan_archives,
         risk_profile=risk_profile,
+        scan_profile=scan_profile,
         rule_pack=rule_pack,
         mode="file-av-scan-baseline",
         bundle_output=False,
@@ -199,6 +201,7 @@ def run_file_av_scan_with_baseline(
         "paths": list(paths),
         "baseline": baseline,
         "risk_profile": risk_profile,
+        "scan_profile": scan_profile or "manual",
         "rule_pack": scan_summary.get("rule_pack", {}) if isinstance(scan_summary, dict) else {},
         "items_scanned": raw_summary.get("items_scanned", len(items)),
         "files_scanned": raw_summary.get("files_scanned", 0),

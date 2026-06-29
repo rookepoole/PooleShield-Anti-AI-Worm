@@ -1,21 +1,14 @@
 # Next Best Move
 
-1. Test v3.7 locally:
+Test PooleShield v3.8 locally:
 
 ```powershell
 python -m pytest -q
 python .\tools\repo_safety_check.py --root .
+python .\pooleshield_operator.py profile-list
+python .\pooleshield_operator.py profile-show --name developer
 ```
 
-2. Initialize and validate a local config:
+Then run a config-driven baseline-aware file-AV scan using `--scan-profile developer`.
 
-```powershell
-python .\pooleshield_operator.py config-init --config .\pooleshield_config.json --force
-python .\pooleshield_operator.py config-validate --config .\pooleshield_config.json
-```
-
-3. Run a config-driven baseline-aware file AV scan.
-
-4. Push v3.7 if clean.
-
-5. Next build after v3.7: v3.8 scan profiles.
+If clean, push v3.8 to GitHub. Next build after v3.8: v3.9 local scan history.

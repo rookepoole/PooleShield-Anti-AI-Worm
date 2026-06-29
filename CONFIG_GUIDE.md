@@ -1,8 +1,8 @@
 # PooleShield Configuration Guide
 
-Version: 3.7.0
+Version: 3.8.0
 
-PooleShield v3.7 adds a local JSON configuration system so operators do not need to repeat baseline, rule-pack, output, risk-profile, and privacy defaults on every command.
+PooleShield v3.8 adds a local JSON configuration system so operators do not need to repeat baseline, rule-pack, output, risk-profile, and privacy defaults on every command.
 
 ## Privacy rule
 
@@ -105,3 +105,36 @@ The config validator checks:
 - required default path strings exist in the config
 
 `--require-existing-paths` warns if configured rule-pack or baseline paths do not exist yet. This is a warning because new users may create a config before building a trusted baseline.
+
+## v3.8 scan profile default
+
+v3.8 adds `defaults.scan_profile` so the local config can select one named scan behavior.
+
+Example:
+
+```json
+{
+  "defaults": {
+    "scan_profile": "developer"
+  }
+}
+```
+
+Available scan profiles:
+
+```text
+quick
+standard
+developer
+strict
+deep
+archive-heavy
+privacy-sensitive
+```
+
+Use `profile-list` and `profile-show` to inspect the effective profile.
+
+```powershell
+python .\pooleshield_operator.py profile-list --config .\pooleshield_config.json
+python .\pooleshield_operator.py profile-show --name developer --config .\pooleshield_config.json
+```

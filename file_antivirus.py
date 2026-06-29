@@ -30,7 +30,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from result_bundler import bundle_output_dir
 from file_av_rules import apply_rule_pack, load_rule_pack, rule_pack_summary
 
-VERSION = "3.7.0"
+VERSION = "3.8.0"
 
 SCRIPT_EXTENSIONS = {
     ".ps1", ".psm1", ".bat", ".cmd", ".vbs", ".vbe", ".js", ".jse", ".wsf", ".wsh",
@@ -579,6 +579,7 @@ def run_file_av_scan(
     max_archive_entry_bytes: int = 2 * 1024 * 1024,
     scan_archives: bool = True,
     risk_profile: str = "standard",
+    scan_profile: Optional[str] = None,
     rule_pack: Optional[str] = None,
     mode: str = "av-scan",
     bundle_output: bool = False,
@@ -644,6 +645,7 @@ def run_file_av_scan(
             "max_archive_entry_bytes": max_archive_entry_bytes,
             "scan_archives": scan_archives,
             "risk_profile": risk_profile,
+            "scan_profile": scan_profile or "manual",
             "rule_pack": rule_pack_summary(loaded_rule_pack),
             "read_only": True,
             "dry_run_only": True,

@@ -1,6 +1,6 @@
 {
   "tool": "PooleShield",
-  "version": "3.7.0",
+  "version": "3.8.0",
   "profile_name": "local-defaults",
   "description": "Local PooleShield defaults. Keep machine-specific/private paths out of Git.",
   "defaults": {
@@ -12,7 +12,8 @@
     "risk_profile": "standard",
     "policy_profile": "balanced",
     "privacy_bundle": true,
-    "bundle_output": false
+    "bundle_output": false,
+    "scan_profile": "standard"
   },
   "limits": {
     "max_bytes_per_file": 5242880,
@@ -24,5 +25,11 @@
     "dry_run_only": true,
     "do_not_execute_scanned_files": true,
     "do_not_delete_or_quarantine_by_default": true
+  },
+  "scan_profiles": {
+    "developer": {
+      "description": "Optional local override example: keep developer profile but raise archive entry limit.",
+      "max_archive_entries": 750
+    }
   }
 }
