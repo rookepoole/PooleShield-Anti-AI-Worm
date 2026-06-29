@@ -1,6 +1,6 @@
 # PooleShield CI Safety Guide
 
-Version: 3.6.1
+Version: 3.6.2
 
 PooleShield v3.6 adds repository safety checks so GitHub can catch private or generated artifacts before they become part of the public repo.
 
@@ -59,7 +59,7 @@ python .\tools\repo_safety_check.py --root .
 Expected:
 
 ```text
-PooleShield repo safety check passed. Version 3.6.1.
+PooleShield repo safety check passed. Version 3.6.2.
 ```
 
 ## If CI fails
@@ -73,9 +73,9 @@ git rm -r --cached --ignore-unmatch out local_trust extracted_dat_text extracted
 Then check status and recommit.
 
 
-## v3.6.1 CI bootstrap fix
+## v3.6.2 CI bootstrap fix
 
-v3.6.1 adds an explicit GitHub Actions dependency-install step before pytest:
+v3.6.2 adds an explicit GitHub Actions dependency-install step before pytest:
 
 ```yaml
 - name: Install test dependencies
@@ -85,3 +85,22 @@ v3.6.1 adds an explicit GitHub Actions dependency-install step before pytest:
 ```
 
 This fixes fresh Ubuntu runners that do not already have pytest installed.
+
+
+## v3.6.2 CI action runtime update
+
+PooleShield v3.6.2 updates the workflow actions from:
+
+```yaml
+actions/checkout@v4
+actions/setup-python@v5
+```
+
+to:
+
+```yaml
+actions/checkout@v7
+actions/setup-python@v6
+```
+
+This removes the GitHub Actions Node 20 deprecation warning while keeping the same test and repo-safety behavior.

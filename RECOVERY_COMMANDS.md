@@ -14,11 +14,11 @@ python .\tools\repo_safety_check.py --root .
 git rm -r --cached --ignore-unmatch out local_trust extracted_dat_text extracted_dat_content extracted_text_like __pycache__ .pytest_cache
 ```
 
-## Push v3.6 after local checks pass
+## Push v3.6.2 after local checks pass
 
 ```powershell
 git add .
 git status --short
-git commit -m "Release PooleShield v3.6 CI safety checks"
+git commit -m "Update CI actions for Node 24 runtime"
 git push origin main
 ```
